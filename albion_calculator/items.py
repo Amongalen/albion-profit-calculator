@@ -1,6 +1,9 @@
 import copy
 import json
+import re
 from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import List, NamedTuple
 
 FILTERED_CATEGORIES = {'luxurygoods', 'other', 'token', 'trophies', 'farmables'}
 FILTERED_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
@@ -8,6 +11,22 @@ FILTERED_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', '
                           'heretic_furniture'}
 WANTED_ITEM_TYPES = ['farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
                      'weapon', 'mount', 'furnitureitem', 'journalitem']
+
+
+@dataclass
+class Recipe:
+    result_quantity: int = 0
+    ingredients: List[NamedTuple('Ingredient', resource_id=str, quantity=int)] = field(default_factory=list)
+
+
+@dataclass
+class Item:
+    id: str
+    name: str
+    category: str
+    subcategory: str
+    recipes: List[Recipe] = field(default_factory=list)
+    item_value: int = 0
 
 
 def is_item_useful(item):
@@ -26,28 +45,62 @@ def remove_weird_items_without_names(items):
     return {k: v for k, v in items.items() if 'name' in v}
 
 
-def load_items():
-    with open('../resources/items.json') as f:
-        raw_items_data = json.load(f)
-        raw_items_data = raw_items_data['items']
-    items = {item['@uniquename']: item for item_type in WANTED_ITEM_TYPES for item in raw_items_data[item_type] if
-             is_item_useful(item)}
-    add_item_names(items)
-    items = remove_weird_items_without_names(items)
-    items.update(pull_out_enchantments(items))
+def create_items(raw_items_data, items_names):
+    items = {}
+    # there are some weird items without name, probably unused ones - lets remove those
+    raw_items_data = {k: v for k, v in raw_items_data.items() if k in items_names}
+    for item_id, item_data in raw_items_data.items():
+        if not is_item_useful(item_data):
+            continue
+        name = items_names[item_id]
+        category = item_data['@shopcategory']
+        subcategory = item_data['@shopsubcategory1']
+        item = Item(item_id, name, category, subcategory)
+        items[item_id] = item
+
     return items
 
 
-def add_item_names(items):
+def load_items():
+    raw_items_data = load_items_file()
+    items_names = get_item_names()
+    enchantment_items = pull_out_enchantments(raw_items_data)
+    raw_items_data = raw_items_data | enchantment_items
+    items = create_items(raw_items_data, items_names)
+    return items
+
+
+def load_items_file():
+    with open('../resources/items.json') as f:
+        raw_items_data = json.load(f)
+        raw_items_data = raw_items_data['items']
+    items = {add_missing_at_symbol(item['@uniquename']): item for item_type in WANTED_ITEM_TYPES for item in
+             raw_items_data[item_type]}
+    return items
+
+
+def add_missing_at_symbol(name):
+    special_at1_cases = ['T5_MOUNT_COUGAR_KEEPER', 'T8_MOUNT_HORSE_UNDEAD', 'T8_MOUNT_COUGAR_KEEPER',
+                         'T8_MOUNT_ARMORED_HORSE_MORGANA', 'T8_MOUNT_MAMMOTH_BATTLE']
+    if name in special_at1_cases:
+        return name + '@1'
+    match = re.search(r'(WOOD|ROCK|ORE|HIDE|FIBER|PLANKS|METALBAR|LEATHER|CLOTH)_LEVEL(\d)$', name)
+    if match is None:
+        return name
+    return name + '@' + match.group(2)
+
+
+def get_item_names():
+    items_names = {}
     with open('../resources/item_names.txt') as f:
         for line in f:
             parts = line.split(':')
             if len(parts) == 3:
-                item_id = parts[1].strip().split('@')[0]
+                item_id = parts[1].strip()
+                # .split('@')[0]
                 item_name = parts[2].strip()
-                if item_id in items:
-                    item = items[item_id]
-                    item['name'] = item_name
+                items_names[item_id] = item_name
+    return items_names
 
 
 def extract_recipes(items):
@@ -62,9 +115,9 @@ def extract_recipes(items):
     return recipes
 
 
-def pull_out_enchantments(items):
+def pull_out_enchantments(raw_items_data):
     new_items = {}
-    for k, v in items.items():
+    for k, v in raw_items_data.items():
         enchantments = v.get('enchantments', {}).get('enchantment', None)
         if enchantments is not None:
             if not isinstance(enchantments, list):
@@ -97,8 +150,6 @@ def run():
     for item in items.values():
         if 'name' not in item:
             print(item['@uniquename'])
-
-    recipes = extract_recipes(items)
 
     print('end')
 
