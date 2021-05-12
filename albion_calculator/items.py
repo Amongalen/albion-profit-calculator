@@ -127,8 +127,9 @@ def pull_out_enchantments(raw_items_data):
 
             for enchantment in enchantments:
                 new_item = copy.copy(v)
-                del new_item['craftingrequirements']
-                del new_item['enchantments']
+                new_item.pop('craftingrequirements', None)
+                new_item.pop('enchantments', None)
+                new_item.pop('upgraderequirements', None)
                 new_item['craftingrequirements'] = enchantment['craftingrequirements']
                 new_item['upgraderequirements'] = enchantment['upgraderequirements']
                 new_id = new_item[ITEM_ID_KEY] + '@' + enchantment['@enchantmentlevel']
