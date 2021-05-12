@@ -41,6 +41,7 @@ def load_items():
     raw_items_data = load_items_file()
     items_names = load_item_names()
     enchantment_items = pull_out_enchantments(raw_items_data)
+
     raw_items_data = raw_items_data | enchantment_items
     items = create_items(raw_items_data, items_names)
     recipes = [recipe for item in items.values() for recipe in item.recipes]
@@ -57,9 +58,7 @@ def create_items(raw_items_data, items_names):
         name = items_names[item_id]
         category = item_data['@shopcategory']
         subcategory = item_data['@shopsubcategory1']
-        craft_recipes = extract_craft_recipes(item_data)
-        upgrade_recipes = extract_upgrade_recipes(item_data)
-        all_recipes = craft_recipes + upgrade_recipes
+        all_recipes = extract_recipes(item_data)
         base_item_id = item_data.get('base_item_id', None)
         item = Item(item_id, name, category, subcategory, base_item_id, all_recipes)
         items[item_id] = item
@@ -67,66 +66,55 @@ def create_items(raw_items_data, items_names):
     return items
 
 
-def extract_upgrade_recipes(item):
+def extract_recipes(item):
     recipes = []
-    recipes_data = item.get('upgraderequirements', None)
-    if recipes_data is None:
-        return recipes
+    crafting_recipes_data = item.get('craftingrequirements', None)
 
-    if not isinstance(recipes_data, list):
-        recipes_data = [recipes_data]
+    if not isinstance(crafting_recipes_data, list):
+        crafting_recipes_data = [crafting_recipes_data]
 
-    for recipe_data in recipes_data:
+    for recipe_data in crafting_recipes_data:
+        if recipe_data is not None:
+            recipe = extract_recipe_details(recipe_data, item, is_upgrade_recipe=False)
+            if recipe is not None:
+                recipes.append(recipe)
+
+    upgrade_recipes_data = item.get('upgraderequirements', None)
+    if not isinstance(upgrade_recipes_data, list):
+        upgrade_recipes_data = [upgrade_recipes_data]
+
+    for recipe_data in upgrade_recipes_data:
+        if recipe_data is not None:
+            recipe = extract_recipe_details(recipe_data, item, is_upgrade_recipe=True)
+            if recipe is not None:
+                recipes.append(recipe)
+
+    return recipes
+
+
+def extract_recipe_details(recipe_data, item, is_upgrade_recipe):
+    if is_upgrade_recipe:
         craft_resources = recipe_data.get('upgraderesource', None)
-        if craft_resources is None:
-            continue
-
-        result_item_id = item[ITEM_ID_KEY]
-        result_item_id = add_missing_at_symbol(result_item_id)
-        result_quantity = recipe_data.get('@amountcrafted', 1)
-        silver_cost = recipe_data.get('@silver', 0)
-
-        if not isinstance(craft_resources, list):
-            craft_resources = [craft_resources]
-        ingredients = [Ingredient(x[ITEM_ID_KEY], x['@count'], x.get('@maxreturnamount', math.inf)) for x in
-                       craft_resources]
-        base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)
-        ingredients.append(base_item_ingredient
-                           )
-        recipe = Recipe(result_item_id, result_quantity, silver_cost, ingredients)
-        recipes.append(recipe)
-
-    return recipes
-
-
-def extract_craft_recipes(item):
-    recipes = []
-    recipes_data = item.get('craftingrequirements', None)
-    if recipes_data is None:
-        return recipes
-
-    if not isinstance(recipes_data, list):
-        recipes_data = [recipes_data]
-
-    for recipe_data in recipes_data:
+    else:
         craft_resources = recipe_data.get('craftresource', None)
-        if craft_resources is None:
-            continue
+    if craft_resources is None:
+        return
 
-        result_item_id = item[ITEM_ID_KEY]
-        result_item_id = add_missing_at_symbol(result_item_id)
-        result_quantity = recipe_data.get('@amountcrafted', 1)
-        silver_cost = recipe_data.get('@silver', 0)
+    result_item_id = item[ITEM_ID_KEY]
+    result_item_id = add_missing_at_symbol(result_item_id)
+    result_quantity = recipe_data.get('@amountcrafted', 1)
+    silver_cost = recipe_data.get('@silver', 0)
 
-        if not isinstance(craft_resources, list):
-            craft_resources = [craft_resources]
+    if not isinstance(craft_resources, list):
+        craft_resources = [craft_resources]
 
-        ingredients = [Ingredient(x[ITEM_ID_KEY], x['@count'], x.get('@maxreturnamount', None)) for x in
-                       craft_resources]
+    ingredients = [Ingredient(x[ITEM_ID_KEY], x['@count'], x.get('@maxreturnamount', math.inf)) for x in
+                   craft_resources]
+    if is_upgrade_recipe:
+        base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)
+        ingredients.append(base_item_ingredient)
 
-        recipe = Recipe(result_item_id, result_quantity, silver_cost, ingredients)
-        recipes.append(recipe)
-    return recipes
+    return Recipe(result_item_id, result_quantity, silver_cost, ingredients)
 
 
 def pull_out_enchantments(raw_items_data):
@@ -138,7 +126,7 @@ def pull_out_enchantments(raw_items_data):
                 enchantments = [enchantments]
 
             for enchantment in enchantments:
-                new_item = copy.deepcopy(v)
+                new_item = copy.copy(v)
                 del new_item['craftingrequirements']
                 del new_item['enchantments']
                 new_item['craftingrequirements'] = enchantment['craftingrequirements']
