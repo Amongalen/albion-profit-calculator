@@ -2,7 +2,6 @@ import copy
 import json
 import math
 import re
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import List, NamedTuple
 
@@ -182,25 +181,3 @@ def load_item_names():
                 item_name = parts[2].strip()
                 items_names[item_id] = item_name
     return items_names
-
-
-def run():
-    items = load_items()
-
-    items_by_category = defaultdict(list)
-    # for item in items.values():
-    #     category = item.get('@shopcategory')
-    #     items_by_category[category].append(item)
-    # items_by_subcategory = defaultdict(list)
-    # for item in items.values():
-    #     subcategory = item.get('@shopsubcategory1')
-    #     items_by_subcategory[subcategory].append(item)
-    # for item in items.values():
-    #     if 'name' not in item:
-    #         print(item['@uniquename'])
-
-    print('end')
-
-
-if __name__ == '__main__':
-    run()
