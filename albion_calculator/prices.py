@@ -2,6 +2,7 @@ import functools
 import json
 import pathlib
 from datetime import datetime, timedelta
+from statistics import mean
 
 import requests as requests
 
@@ -40,6 +41,14 @@ def get_all_prices(items):
     return all_prices
 
 
+def normalize_datetime_format(record):
+    record['sell_price_min_date'] = str(parse_timestamp(record['sell_price_min_date']))
+    record['sell_price_max_date'] = str(parse_timestamp(record['sell_price_max_date']))
+    record['buy_price_min_date'] = str(parse_timestamp(record['buy_price_min_date']))
+    record['buy_price_max_date'] = str(parse_timestamp(record['buy_price_max_date']))
+    return record
+
+
 def get_prices_for_one_item(item):
     history_url = API_ADDRESS.format(type='history', items=item)
     prices_url = API_ADDRESS.format(type='prices', items=item)
@@ -52,14 +61,31 @@ def get_prices_for_one_item(item):
     for city in CITIES:
         history_price = history_prices_by_city.get(city, {})
         history_price_summary = summarize_history_price(history_price)
-        latest_price = latest_prices_by_city.get(city, {})
+        latest_price = normalize_datetime_format(latest_prices_by_city.get(city, {}))
         merged_prices_by_city[city] = history_price_summary | latest_price
     return merged_prices_by_city
 
 
 def summarize_history_price(history_price):
-    summary = {}
+    if history_price is None:
+        return {}
+    data = history_price['data']
+    latest_record = data[-1]
+    latest_timestamp = parse_timestamp(latest_record['timestamp'])
+    previous_day = latest_timestamp - timedelta(days=1)
+    avg_price_24h = mean([record['avg_price'] for record in data
+                          if parse_timestamp(record['timestamp']) > previous_day])
+    total_items_sold = sum(record['item_count'] for record in data)
+    summary = {'item_id': history_price['item_id'],
+               'latest_timestamp': str(latest_timestamp),
+               'total_items_sold': total_items_sold,
+               'avg_price_24h': avg_price_24h}
+
     return summary
+
+
+def parse_timestamp(timestamp_str):
+    return datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
 
 
 def get_json_from_url(url):
