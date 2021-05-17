@@ -33,11 +33,11 @@ def load_crafting_modifiers():
     raw_data = load_crafting_modifiers_file()
     crafting_modifiers = {}
     for location in raw_data:
-        city = CLUSTER_ID.get(location['@clusterid'], None)
+        city = CLUSTER_ID.get(location.get('@clusterid', None), None)
         if city is None:
             continue
         crafting_modifiers[city] = {modifier['@name']: float(modifier['@value']) for modifier in
-                                    location['craftingmodifiers']}
+                                    location['craftingmodifier']}
     return crafting_modifiers
 
 
