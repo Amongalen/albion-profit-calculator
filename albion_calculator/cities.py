@@ -2,7 +2,7 @@ import json
 
 import bidict as bidict
 
-BASE_CRAFTING_RATE = 0.18
+BASE_CRAFTING_BONUS = 0.18
 
 CITIES = bidict.bidict(
     {0: 'Fort Sterling', 1: 'Lymhurst', 2: 'Bridgewatch', 3: 'Martlock', 4: 'Thetford', 5: 'Caerleon'})
@@ -36,13 +36,15 @@ def load_crafting_modifiers():
         city = CLUSTER_ID.get(location.get('@clusterid', None), None)
         if city is None:
             continue
-        crafting_modifiers[city] = {modifier['@name']: float(modifier['@value']) for modifier in
-                                    location['craftingmodifier']}
+        crafting_modifiers[city] = {modifier['@name']: float(modifier['@value'])
+                                    for modifier in location['craftingmodifier']}
     return crafting_modifiers
 
 
-return_rates = load_crafting_modifiers()
+crafting_bonus = load_crafting_modifiers()
 
 
-def get_return_rate(city, item_category):
-    return return_rates[city].get(item_category, 0) + BASE_CRAFTING_RATE
+def get_return_rate(city, item_category, use_focus=False):
+    focus_bonus = 0.59 if use_focus else 0
+    local_crafting_bonus = crafting_bonus[city].get(item_category, 0) + BASE_CRAFTING_BONUS + focus_bonus
+    return round(1 - 1 / (1 + local_crafting_bonus), 3)
