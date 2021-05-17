@@ -14,7 +14,7 @@ FILTERED_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', '
 WANTED_ITEM_TYPES = ['farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
                      'weapon', 'mount', 'furnitureitem', 'journalitem']
 
-Ingredient = NamedTuple('Ingredient', resource_id=str, quantity=int, max_return_rate=int)
+Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
 
 
 @dataclass(frozen=True)

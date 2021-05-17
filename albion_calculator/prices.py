@@ -6,7 +6,7 @@ from statistics import mean
 
 import requests as requests
 
-from albion_calculator import items
+from albion_calculator.cities import cities_names
 
 CACHE_LIFETIME = 12
 
@@ -14,8 +14,7 @@ CACHE_FILENAME = '../cache/price.cache'
 
 API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.json'
 
-CITIES = ['Bridgewatch', 'Fort Sterling', 'Caerleon', 'Martlock', 'Thetford', 'Lymhurst']
-REQUEST_PARAMS = {'locations': ','.join(CITIES),
+REQUEST_PARAMS = {'locations': ','.join(cities_names()),
                   'time-scale': 1,
                   'qualities': 1}
 
@@ -58,7 +57,7 @@ def get_prices_for_one_item(item):
     history_prices_by_city = {record['location']: record for record in history_prices}
     latest_prices_by_city = {record['city']: record for record in latest_prices}
     merged_prices_by_city = {}
-    for city in CITIES:
+    for city in cities_names():
         history_price = history_prices_by_city.get(city, {})
         history_price_summary = summarize_history_price(history_price)
         latest_price = normalize_datetime_format(latest_prices_by_city.get(city, {}))
@@ -75,6 +74,7 @@ def summarize_history_price(history_price):
     previous_day = latest_timestamp - timedelta(days=1)
     avg_price_24h = mean([record['avg_price'] for record in data
                           if parse_timestamp(record['timestamp']) > previous_day])
+    avg_price_24h = round(avg_price_24h, 2)
     total_items_sold = sum(record['item_count'] for record in data)
     summary = {'item_id': history_price['item_id'],
                'latest_timestamp': str(latest_timestamp),
