@@ -2,11 +2,14 @@ import functools
 import json
 import pathlib
 from datetime import datetime, timedelta
+from math import nan
 from statistics import mean
 
+import numpy as np
 import requests as requests
 
-from albion_calculator.cities import cities_names
+from albion_calculator import items
+from albion_calculator.cities import cities_names, index_of_city
 
 CACHE_LIFETIME = 12
 
@@ -17,6 +20,8 @@ API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.js
 REQUEST_PARAMS = {'locations': ','.join(cities_names()),
                   'time-scale': 1,
                   'qualities': 1}
+
+DEVIATION_THRESHOLD = 0.30
 
 
 def local_price_cache(func):
@@ -32,23 +37,15 @@ def local_price_cache(func):
 
 
 @local_price_cache
-def get_all_prices(items):
+def load_all_prices(items_ids):
     all_prices = {}
-    for item in items:
-        prices = get_prices_for_one_item(item)
+    for item in items_ids:
+        prices = get_prices_for_item(item)
         all_prices[item] = prices
     return all_prices
 
 
-def normalize_datetime_format(record):
-    record['sell_price_min_date'] = str(parse_timestamp(record['sell_price_min_date']))
-    record['sell_price_max_date'] = str(parse_timestamp(record['sell_price_max_date']))
-    record['buy_price_min_date'] = str(parse_timestamp(record['buy_price_min_date']))
-    record['buy_price_max_date'] = str(parse_timestamp(record['buy_price_max_date']))
-    return record
-
-
-def get_prices_for_one_item(item):
+def get_prices_for_item(item):
     history_url = API_ADDRESS.format(type='history', items=item)
     prices_url = API_ADDRESS.format(type='prices', items=item)
 
@@ -56,13 +53,32 @@ def get_prices_for_one_item(item):
     latest_prices = get_json_from_url(prices_url)
     history_prices_by_city = {record['location']: record for record in history_prices}
     latest_prices_by_city = {record['city']: record for record in latest_prices}
-    merged_prices_by_city = {}
+    merged_prices_by_city = []
     for city in cities_names():
         history_price = history_prices_by_city.get(city, {})
         history_price_summary = summarize_history_price(history_price)
         latest_price = normalize_datetime_format(latest_prices_by_city.get(city, {}))
-        merged_prices_by_city[city] = history_price_summary | latest_price
+        merged_prices_by_city.append(history_price_summary | latest_price)
     return merged_prices_by_city
+
+
+def get_prices_in_cities(item_id):
+    result = []
+    for record in get_raw_prices_data_for_item(item_id):
+        if not record:
+            result.append(nan)
+            continue
+        min_price = record['sell_price_min']
+        avg_price_24h = record['avg_price_24h']
+
+        if min_price != 0:
+            price = min_price
+        elif avg_price_24h != 0:
+            price = avg_price_24h
+        else:
+            price = nan
+        result.append(price)
+    return np.array(result)
 
 
 def summarize_history_price(history_price):
@@ -72,16 +88,23 @@ def summarize_history_price(history_price):
     latest_record = data[-1]
     latest_timestamp = parse_timestamp(latest_record['timestamp'])
     previous_day = latest_timestamp - timedelta(days=1)
-    avg_price_24h = mean([record['avg_price'] for record in data
-                          if parse_timestamp(record['timestamp']) > previous_day])
-    avg_price_24h = round(avg_price_24h, 2)
-    total_items_sold = sum(record['item_count'] for record in data)
+    items_sold = sum(record['item_count'] for record in data)
+
+    data_24h = [record for record in data if parse_timestamp(record['timestamp']) > previous_day]
+    price_sum_24h = sum(record['avg_price'] * record['item_count'] for record in data_24h)
+    items_sold_24h = sum(record['item_count'] for record in data_24h)
+    avg_price_24h = price_sum_24h / items_sold_24h
+
     summary = {'item_id': history_price['item_id'],
                'latest_timestamp': str(latest_timestamp),
-               'total_items_sold': total_items_sold,
+               'items_sold': items_sold,
                'avg_price_24h': avg_price_24h}
 
     return summary
+
+
+def get_raw_prices_data_for_item(item_id):
+    return items_prices[item_id]
 
 
 def parse_timestamp(timestamp_str):
@@ -126,10 +149,17 @@ def is_cache_up_to_date():
     return True
 
 
-if __name__ == '__main__':
-    # items = items.load_items()
-    # items_ids = items.keys()
+def normalize_datetime_format(record):
+    record['sell_price_min_date'] = str(parse_timestamp(record['sell_price_min_date']))
+    record['sell_price_max_date'] = str(parse_timestamp(record['sell_price_max_date']))
+    record['buy_price_min_date'] = str(parse_timestamp(record['buy_price_min_date']))
+    record['buy_price_max_date'] = str(parse_timestamp(record['buy_price_max_date']))
+    return record
 
-    items_ids = ['T5_WOOD', 'T5_PLANKS', 'T5_BAG', 'T4_POTION_HEAL']
-    result = get_all_prices(items_ids)
-    print(result)
+
+# items_ids = items.load_items().keys()
+
+# for testing
+items_ids = ['T5_WOOD', 'T5_PLANKS', 'T4_PLANKS']
+
+items_prices = load_all_prices(items_ids)
