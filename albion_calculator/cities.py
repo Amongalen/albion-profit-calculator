@@ -1,6 +1,7 @@
 import json
 
 import bidict as bidict
+import numpy as np
 
 BASE_CRAFTING_BONUS = 0.18
 
@@ -41,10 +42,15 @@ def load_crafting_modifiers():
     return crafting_modifiers
 
 
-crafting_bonus = load_crafting_modifiers()
-
-
 def get_return_rate(city, item_category, use_focus=False):
     focus_bonus = 0.59 if use_focus else 0
     local_crafting_bonus = crafting_bonus[city].get(item_category, 0) + BASE_CRAFTING_BONUS + focus_bonus
     return round(1 - 1 / (1 + local_crafting_bonus), 3)
+
+
+def get_return_rates_vector(item_category, use_focus=False):
+    vector = [get_return_rate(city, item_category, use_focus) for city in cities_names()]
+    return np.array(vector)
+
+
+crafting_bonus = load_crafting_modifiers()
