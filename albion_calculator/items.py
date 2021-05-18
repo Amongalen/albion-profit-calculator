@@ -19,7 +19,11 @@ Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate
 
 @dataclass(frozen=True)
 class Recipe:
+    CRAFTING_RECIPE = 'crafting'
+    UPGRADE_RECIPE = 'upgrade'
+
     result_item_id: str
+    recipe_type: str
     result_quantity: int = 0
     silver_cost: int = 0
     ingredients: List[Ingredient] = field(default_factory=list)
@@ -67,8 +71,8 @@ def create_items(raw_items_data, items_names):
 
 def extract_recipes(item):
     recipes = []
-    crafting_recipes_data = item.get('craftingrequirements', None)
 
+    crafting_recipes_data = item.get('craftingrequirements', None)
     if not isinstance(crafting_recipes_data, list):
         crafting_recipes_data = [crafting_recipes_data]
 
@@ -101,19 +105,20 @@ def extract_recipe_details(recipe_data, item, is_upgrade_recipe):
 
     result_item_id = item[ITEM_ID_KEY]
     result_item_id = add_missing_at_symbol(result_item_id)
-    result_quantity = recipe_data.get('@amountcrafted', 1)
-    silver_cost = recipe_data.get('@silver', 0)
+    result_quantity = int(recipe_data.get('@amountcrafted', 1))
+    silver_cost = int(recipe_data.get('@silver', 0))
 
     if not isinstance(craft_resources, list):
         craft_resources = [craft_resources]
 
-    ingredients = [Ingredient(x[ITEM_ID_KEY], x['@count'], x.get('@maxreturnamount', math.inf)) for x in
+    ingredients = [Ingredient(x[ITEM_ID_KEY], int(x['@count']), float(x.get('@maxreturnamount', math.inf))) for x in
                    craft_resources]
     if is_upgrade_recipe:
         base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)
         ingredients.append(base_item_ingredient)
 
-    return Recipe(result_item_id, result_quantity, silver_cost, ingredients)
+    recipe_type = Recipe.UPGRADE_RECIPE if is_upgrade_recipe else Recipe.CRAFTING_RECIPE
+    return Recipe(result_item_id, recipe_type, result_quantity, silver_cost, ingredients)
 
 
 def pull_out_enchantments(raw_items_data):
