@@ -3,13 +3,11 @@ import json
 import pathlib
 from datetime import datetime, timedelta
 from math import nan
-from statistics import mean
 
 import numpy as np
 import requests as requests
 
-from albion_calculator import items
-from albion_calculator.cities import cities_names, index_of_city
+from albion_calculator.cities import cities_names
 
 CACHE_LIFETIME = 12
 
@@ -21,7 +19,7 @@ REQUEST_PARAMS = {'locations': ','.join(cities_names()),
                   'time-scale': 1,
                   'qualities': 1}
 
-DEVIATION_THRESHOLD = 0.30
+DEVIATION_THRESHOLD = 2
 
 
 def local_price_cache(func):
@@ -40,12 +38,12 @@ def local_price_cache(func):
 def load_all_prices(items_ids):
     all_prices = {}
     for item in items_ids:
-        prices = get_prices_for_item(item)
+        prices = get_raw_prices_data_for_item(item)
         all_prices[item] = prices
     return all_prices
 
 
-def get_prices_for_item(item):
+def get_raw_prices_data_for_item(item):
     history_url = API_ADDRESS.format(type='history', items=item)
     prices_url = API_ADDRESS.format(type='prices', items=item)
 
@@ -62,16 +60,17 @@ def get_prices_for_item(item):
     return merged_prices_by_city
 
 
-def get_prices_in_cities(item_id):
+def get_prices_for_item(item_id):
     result = []
-    for record in get_raw_prices_data_for_item(item_id):
+    for record in items_prices[item_id]:
         if not record:
             result.append(nan)
             continue
         min_price = record['sell_price_min']
         avg_price_24h = record['avg_price_24h']
-
-        if min_price != 0:
+        # deviation used to remove anomalous values
+        deviation = min_price / avg_price_24h
+        if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
             price = min_price
         elif avg_price_24h != 0:
             price = avg_price_24h
@@ -101,10 +100,6 @@ def summarize_history_price(history_price):
                'avg_price_24h': avg_price_24h}
 
     return summary
-
-
-def get_raw_prices_data_for_item(item_id):
-    return items_prices[item_id]
 
 
 def parse_timestamp(timestamp_str):

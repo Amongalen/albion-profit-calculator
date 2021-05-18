@@ -5,7 +5,7 @@ import numpy as np
 from albion_calculator import prices, items
 
 # MATRIX[transport_from][transport_to]
-from albion_calculator.prices import get_prices_in_cities
+from albion_calculator.prices import get_prices_for_item
 
 TRAVEL_COST_MULTIPLIER = np.array([
     [1.00, 1.05, 1.10, 1.10, 1.05, 1.05],
@@ -35,9 +35,9 @@ NO_TRAVEL_MULTIPLIER = np.array([
 
 
 def calculate_profit_for_recipe(recipe, multiplier, use_focus):
-    product_price = get_prices_in_cities(recipe.result_item_id)
+    product_price = get_prices_for_item(recipe.result_item_id)
     ingredients_prices = {
-        ingredient.item_id: get_prices_in_cities(ingredient.item_id) * ingredient.quantity
+        ingredient.item_id: get_prices_for_item(ingredient.item_id) * ingredient.quantity
         for ingredient in recipe.ingredients}
 
     result_value = product_price / multiplier
@@ -52,5 +52,5 @@ if __name__ == '__main__':
     recipe = t5_planks.recipes[0]
     items_ids = ['T5_WOOD', 'T5_PLANKS', 'T4_PLANKS']
     calculate_profit_for_recipe(recipe, NO_TRAVEL_MULTIPLIER, use_focus=False)
-    get_prices_in_cities('T5_PLANKS')
+    get_prices_for_item('T5_PLANKS')
     print('end')
