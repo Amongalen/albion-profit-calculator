@@ -80,6 +80,10 @@ def get_prices_for_item(item_id):
     return np.array(result)
 
 
+def get_price_for_item_in_city(item_id, city_index):
+    return get_prices_for_item(item_id)[city_index]
+
+
 def summarize_history_price(history_price):
     if history_price is None:
         return {}

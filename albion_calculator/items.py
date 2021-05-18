@@ -40,6 +40,18 @@ class Item:
     item_value: int = 0
 
 
+def get_all_items_ids():
+    return items_data.keys()
+
+
+def get_item_subcategory(item_id):
+    return items_data[item_id].subcategory
+
+
+def get_all_recipes():
+    return recipes
+
+
 def load_items():
     raw_items_data = load_items_file()
     items_names = load_item_names()
@@ -185,3 +197,11 @@ def load_item_names():
                 item_name = parts[2].strip()
                 items_names[item_id] = item_name
     return items_names
+
+
+def load_recipes():
+    return [recipe for item in items_data.values() for recipe in item.recipes]
+
+
+items_data = load_items()
+recipes = load_recipes()

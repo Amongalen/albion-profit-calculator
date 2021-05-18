@@ -3,6 +3,14 @@ import json
 import bidict as bidict
 import numpy as np
 
+from albion_calculator import items
+
+SUBCATEGORY_REPLACEMENTS = {'ore': 'metalbar',
+                            'wood': 'planks',
+                            'hide': 'leather',
+                            'fiber': 'cloth',
+                            'rock': 'stoneblock'}
+
 BASE_CRAFTING_BONUS = 0.18
 
 CITIES = bidict.bidict(
@@ -30,6 +38,10 @@ def load_crafting_modifiers_file():
     return raw_crafting_modifiers_data['craftingmodifiers']['craftinglocation']
 
 
+def replace_refining_category(name):
+    return SUBCATEGORY_REPLACEMENTS.get(name, name)
+
+
 def load_crafting_modifiers():
     raw_data = load_crafting_modifiers_file()
     crafting_modifiers = {}
@@ -37,7 +49,7 @@ def load_crafting_modifiers():
         city = CLUSTER_ID.get(location.get('@clusterid', None), None)
         if city is None:
             continue
-        crafting_modifiers[city] = {modifier['@name']: float(modifier['@value'])
+        crafting_modifiers[city] = {replace_refining_category(modifier['@name']): float(modifier['@value'])
                                     for modifier in location['craftingmodifier']}
     return crafting_modifiers
 
@@ -48,8 +60,9 @@ def get_return_rate(city, item_category, use_focus=False):
     return round(1 - 1 / (1 + local_crafting_bonus), 3)
 
 
-def get_return_rates_vector(item_category, use_focus=False):
-    vector = [get_return_rate(city, item_category, use_focus) for city in cities_names()]
+def get_return_rates_vector(item_id, use_focus=False):
+    item_subcategory = items.get_item_subcategory(item_id)
+    vector = [get_return_rate(city, item_subcategory, use_focus) for city in cities_names()]
     return np.array(vector)
 
 
