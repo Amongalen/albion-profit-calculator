@@ -47,7 +47,6 @@ def load_items():
 
     raw_items_data = raw_items_data | enchantment_items
     items = create_items(raw_items_data, items_names)
-    recipes = [recipe for item in items.values() for recipe in item.recipes]
     return items
 
 
