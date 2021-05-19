@@ -34,7 +34,7 @@ NO_TRAVEL_MULTIPLIER = np.array([
 ])
 
 
-# @todo product quantity; limited return rate
+# @todo product quantity
 # @todo journals
 # @todo refactor this crap
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
@@ -94,9 +94,11 @@ def calculate_final_profit_matrix(ingredients_costs, multiplier, recipe):
 def calculate_ingredients_costs(multiplier, recipe, use_focus):
     ingredients_price_matrices = {}
     return_rates = cities.get_return_rates_vector(recipe.result_item_id, use_focus)
+    return_rates = np.atleast_2d(1 - return_rates).T
     for ingredient in recipe.ingredients:
-        price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier \
-                       * np.atleast_2d((1 - return_rates)).T
+        price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier
+        if ingredient.max_return_rate != 0:
+            price_matrix = price_matrix * return_rates
         ingredients_price_matrices[ingredient.item_id] = price_matrix
     ingredients_costs = find_ingredients_best_deals_per_city(ingredients_price_matrices)
     return ingredients_costs
