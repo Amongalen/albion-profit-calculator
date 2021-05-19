@@ -72,9 +72,9 @@ def get_prices_for_item(item_id):
             result.append(nan)
             continue
         min_price = record['sell_price_min']
-        avg_price_24h = record['avg_price_24h']
+        avg_price_24h = record.get('avg_price_24h', 0)
         # deviation used to remove anomalous values
-        deviation = min_price / avg_price_24h
+        deviation = min_price / avg_price_24h if avg_price_24h != 0 else min_price
         if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
             price = min_price
         elif avg_price_24h != 0:
@@ -90,7 +90,7 @@ def get_price_for_item_in_city(item_id, city_index):
 
 
 def summarize_history_price(history_price):
-    if history_price is None:
+    if not history_price:
         return {}
     data = history_price['data']
     latest_record = data[-1]
@@ -164,6 +164,6 @@ def normalize_datetime_format(record):
 # items_ids = items.load_items().keys()
 
 # for testing
-items_ids = ['T5_WOOD', 'T5_PLANKS', 'T4_PLANKS']
+items_ids = ['T4_POTION_HEAL', 'T4_BURDOCK', 'T3_EGG']
 
 items_prices = load_all_prices(items_ids)

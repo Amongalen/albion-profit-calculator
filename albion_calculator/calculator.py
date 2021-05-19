@@ -102,7 +102,7 @@ def find_ingredients_best_deals_per_city(ingredients_price_matrices):
 def calculate_final_profit_matrix(ingredients_costs, multiplier, recipe):
     ingredients_costs_total = [sum(item[0] for item in city.values()) for city in ingredients_costs]
     product_price = get_prices_for_item(recipe.result_item_id)
-    final_profit_matrix = (product_price / multiplier).T - ingredients_costs_total
+    final_profit_matrix = (product_price * recipe.result_quantity / multiplier).T - ingredients_costs_total
     return final_profit_matrix
 
 
@@ -124,6 +124,6 @@ if __name__ == '__main__':
 
     T4_POTION_HEAL = items['T4_POTION_HEAL']
     recipe = T4_POTION_HEAL.recipes[0]
-    items_ids = ['T4_BURDOCK', 'T3_EGG']
+
     result = calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
     print('end')
