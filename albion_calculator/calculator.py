@@ -35,7 +35,7 @@ NO_TRAVEL_MULTIPLIER = np.array([
 
 
 # @todo product quantity; limited return rate
-# @todo cost without return rate
+# @todo journals
 # @todo refactor this crap
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     ingredients_costs = calculate_ingredients_costs(multiplier, recipe, use_focus)
@@ -46,28 +46,29 @@ def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     production_city_index = max_profit_index[1]
     max_profit = np.nanmax(final_profit_matrix)
 
-    details1 = {}
+    ingredients_details = {}
     for item_id, data in ingredients_costs[production_city_index].items():
         quantity = next(ingredient.quantity for ingredient in recipe.ingredients if ingredient.item_id == item_id)
         local_price = round(get_price_for_item_in_city(item_id, data[1]), 2)
-        details1[item_id] = {
+        total_cost = quantity * local_price
+        total_cost_with_transport = total_cost * multiplier[data[1]][production_city_index]
+        ingredients_details[item_id] = {
             'local_price': local_price,
-            'total_price': quantity * local_price,
-            'total_crafting_cost_with_returns': round(data[0], 2),
+            'total_cost': total_cost,
+            'total_cost_with_transport': total_cost_with_transport,
+            'total_cost_with_returns': round(data[0], 2),
             'source_city': cities.city_at_index(data[1]),
             'quantity': quantity
         }
-    ingredients_details = details1
 
     final_product_price = get_price_for_item_in_city(recipe.result_item_id, destination_city_index)
-    details = {
+    max_profit_details = {
         'max_profit': max_profit,
         'destination_city': cities.city_at_index(destination_city_index),
         'production_city': cities.city_at_index(production_city_index),
         'final_product_price': final_product_price,
         'ingredients_details': ingredients_details
     }
-    max_profit_details = details
     return max_profit_details
 
 
