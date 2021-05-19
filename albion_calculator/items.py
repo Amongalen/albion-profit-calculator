@@ -52,6 +52,10 @@ def get_all_recipes():
     return recipes
 
 
+def get_item_name(item_id):
+    return items_data[item_id].name
+
+
 def load_items():
     raw_items_data = load_items_file()
     items_names = load_item_names()

@@ -62,7 +62,12 @@ def get_raw_prices_data_for_item(item):
 
 def get_prices_for_item(item_id):
     result = []
-    for record in items_prices[item_id]:
+    prices = items_prices.get(item_id, None)
+    if prices is None:
+        a = np.empty((6,))
+        a[:] = nan
+        return a
+    for record in prices:
         if not record:
             result.append(nan)
             continue

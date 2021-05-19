@@ -39,6 +39,10 @@ NO_TRAVEL_MULTIPLIER = np.array([
 # @todo refactor this crap
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     ingredients_costs = calculate_ingredients_costs(multiplier, recipe, use_focus)
+    missing_ingredients = check_missing_ingredient_prices(ingredients_costs, recipe)
+    if missing_ingredients:
+        return {'missing_ingredients': missing_ingredients}
+
     final_profit_matrix = calculate_final_profit_matrix(ingredients_costs, multiplier, recipe)
 
     max_profit_index = np.unravel_index(np.nanargmax(final_profit_matrix), final_profit_matrix.shape)
@@ -72,13 +76,24 @@ def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     return max_profit_details
 
 
+def check_missing_ingredient_prices(ingredients_costs, recipe):
+    missing_ingredients = []
+    for ingredient in recipe.ingredients:
+        if all(np.isnan(city[ingredient.item_id][0]) for city in ingredients_costs):
+            missing_ingredients.append(ingredient.item_id)
+    return missing_ingredients
+
+
 def find_ingredients_best_deals_per_city(ingredients_price_matrices):
     result = []
     for city in range(6):
         best_deals = {}
         for item_id, price_matrix in ingredients_price_matrices.items():
             min_price = np.nanmin(price_matrix[city])
-            index = np.nanargmin(price_matrix[city])
+            if np.isnan(min_price):
+                index = nan
+            else:
+                index = np.nanargmin(price_matrix[city])
             best_deals[item_id] = (min_price, index)
         result.append(best_deals)
     return result
@@ -107,9 +122,8 @@ def calculate_ingredients_costs(multiplier, recipe, use_focus):
 if __name__ == '__main__':
     items = items.load_items()
 
-    t5_planks = items['T5_PLANKS']
-    recipe = t5_planks.recipes[0]
-    items_ids = ['T5_WOOD', 'T5_PLANKS', 'T4_PLANKS']
+    T4_POTION_HEAL = items['T4_POTION_HEAL']
+    recipe = T4_POTION_HEAL.recipes[0]
+    items_ids = ['T4_BURDOCK', 'T3_EGG']
     result = calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
-    get_prices_for_item('T5_PLANKS')
     print('end')
