@@ -5,6 +5,7 @@ import numpy as np
 from albion_calculator import items, cities
 
 # MATRIX[transport_to][transport_from]
+from albion_calculator.items import Recipe
 from albion_calculator.prices import get_prices_for_item, get_price_for_item_in_city
 
 TRAVEL_COST_MULTIPLIER = np.array([
@@ -34,7 +35,6 @@ NO_TRAVEL_MULTIPLIER = np.array([
 ])
 
 
-# @todo product quantity
 # @todo journals
 # @todo refactor this crap
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
@@ -112,7 +112,7 @@ def calculate_ingredients_costs(multiplier, recipe, use_focus):
     return_rates = np.atleast_2d(1 - return_rates).T
     for ingredient in recipe.ingredients:
         price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier
-        if ingredient.max_return_rate != 0:
+        if recipe.recipe_type == Recipe.CRAFTING_RECIPE and ingredient.max_return_rate != 0:
             price_matrix = price_matrix * return_rates
         ingredients_price_matrices[ingredient.item_id] = price_matrix
     ingredients_costs = find_ingredients_best_deals_per_city(ingredients_price_matrices)
