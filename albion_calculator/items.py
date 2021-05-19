@@ -78,8 +78,16 @@ def create_items(raw_items_data, items_names):
         subcategory = item_data['@shopsubcategory1']
         all_recipes = extract_recipes(item_data)
         base_item_id = item_data.get('base_item_id', None)
-        item = Item(item_id, name, category, subcategory, base_item_id, all_recipes)
-        items[item_id] = item
+        items[item_id] = Item(item_id, name, category, subcategory, base_item_id, all_recipes)
+        if 'JOURNAL' in item_id:
+            empty_journal_id = item_id + '_EMPTY'
+            empty_journal_name = items_names[empty_journal_id]
+            items[empty_journal_id] = Item(empty_journal_id, empty_journal_name, category, subcategory, base_item_id,
+                                           all_recipes)
+            full_journal_id = item_id + '_FULL'
+            full_journal_name = items_names[full_journal_id]
+            items[full_journal_id] = Item(full_journal_id, full_journal_name, category, subcategory, base_item_id,
+                                          all_recipes)
 
     return items
 
