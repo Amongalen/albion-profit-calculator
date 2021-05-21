@@ -5,6 +5,12 @@ import re
 from dataclasses import dataclass, field
 from typing import List, NamedTuple
 
+ITEM_NAMES_TXT_FILE = '../resources/item_names.txt'
+
+ITEMS_JSON_FILE = '../resources/items.json'
+
+CRAFTING_FAME_JSON_FILE = '../resources/crafting_fame.json'
+
 ITEM_ID_KEY = '@uniquename'
 
 FILTERED_CATEGORIES = {'luxurygoods', 'other', 'token', 'trophies', 'farmables'}
@@ -35,8 +41,9 @@ class Item:
     name: str
     category: str
     subcategory: str
-    base_item_id: str = None
+    base_item_id: str
     recipes: List[Recipe] = field(default_factory=list)
+    crafting_fame: int = 0
     item_value: int = 0
 
 
@@ -62,11 +69,12 @@ def load_items():
     enchantment_items = pull_out_enchantments(raw_items_data)
 
     raw_items_data = raw_items_data | enchantment_items
-    items = create_items(raw_items_data, items_names)
+    crafting_fame_dict = load_crafting_fame_file()
+    items = create_items(raw_items_data, items_names, crafting_fame_dict)
     return items
 
 
-def create_items(raw_items_data, items_names):
+def create_items(raw_items_data, items_names, crafting_fame_dict):
     items = {}
     # there are some weird items without name, probably unused ones - lets remove those
     raw_items_data = {k: v for k, v in raw_items_data.items() if k in items_names}
@@ -78,7 +86,8 @@ def create_items(raw_items_data, items_names):
         subcategory = item_data['@shopsubcategory1']
         all_recipes = extract_recipes(item_data)
         base_item_id = item_data.get('base_item_id', None)
-        items[item_id] = Item(item_id, name, category, subcategory, base_item_id, all_recipes)
+        crafting_fame = crafting_fame_dict.get(item_id, 0)
+        items[item_id] = Item(item_id, name, category, subcategory, base_item_id, all_recipes, crafting_fame)
         if 'JOURNAL' in item_id:
             empty_journal_id = item_id + '_EMPTY'
             empty_journal_name = items_names[empty_journal_id]
@@ -88,7 +97,7 @@ def create_items(raw_items_data, items_names):
             full_journal_name = items_names[full_journal_id]
             items[full_journal_id] = Item(full_journal_id, full_journal_name, category, subcategory, base_item_id,
                                           all_recipes)
-
+    test = [item for item in items.values() if item.crafting_fame == 0]
     return items
 
 
@@ -179,8 +188,14 @@ def is_item_useful(item):
     return True
 
 
+def load_crafting_fame_file():
+    with open(CRAFTING_FAME_JSON_FILE) as f:
+        crafting_fame = json.load(f)
+    return {key: value for key, value in crafting_fame.items() if value is not None}
+
+
 def load_items_file():
-    with open('../resources/items.json') as f:
+    with open(ITEMS_JSON_FILE) as f:
         raw_items_data = json.load(f)
         raw_items_data = raw_items_data['items']
     items = {add_missing_at_symbol(item[ITEM_ID_KEY]): item for item_type in WANTED_ITEM_TYPES for item in
@@ -201,7 +216,7 @@ def add_missing_at_symbol(name):
 
 def load_item_names():
     items_names = {}
-    with open('../resources/item_names.txt') as f:
+    with open(ITEM_NAMES_TXT_FILE) as f:
         for line in f:
             parts = line.split(':')
             if len(parts) == 3:
@@ -213,6 +228,11 @@ def load_item_names():
 
 def load_recipes():
     return [recipe for item in items_data.values() for recipe in item.recipes]
+
+
+def get_items_ids_for_category_or_subcategory(*args):
+    items_ids = [item_id for item_id, item in items_data.items() if item.subcategory in args or item.category in args]
+    return items_ids
 
 
 items_data = load_items()

@@ -5,6 +5,16 @@ import numpy as np
 from albion_calculator import items
 from albion_calculator.cities import cities_names
 
+SUBCATEGORY_REPLACEMENTS = {'ore': 'metalbar',
+                            'wood': 'planks',
+                            'hide': 'leather',
+                            'fiber': 'cloth',
+                            'rock': 'stoneblock'}
+CLUSTER_ID = {'0000': 'Thetford', '1000': 'Lymhurst', '2000': 'Bridgewatch',
+              '3004': 'Martlock', '4000': 'Fort Sterling', '3003': 'Caerleon'}
+
+BASE_CRAFTING_BONUS = 0.18
+
 
 def load_crafting_modifiers():
     raw_data = load_crafting_modifiers_file()
@@ -16,9 +26,6 @@ def load_crafting_modifiers():
         crafting_modifiers[city] = {replace_refining_category(modifier['@name']): float(modifier['@value'])
                                     for modifier in location['craftingmodifier']}
     return crafting_modifiers
-
-
-crafting_bonus = load_crafting_modifiers()
 
 
 def get_return_rates_vector(item_id, use_focus=False):
@@ -43,12 +50,9 @@ def load_crafting_modifiers_file():
     return raw_crafting_modifiers_data['craftingmodifiers']['craftinglocation']
 
 
-SUBCATEGORY_REPLACEMENTS = {'ore': 'metalbar',
-                            'wood': 'planks',
-                            'hide': 'leather',
-                            'fiber': 'cloth',
-                            'rock': 'stoneblock'}
-CLUSTER_ID = {'0000': 'Thetford', '1000': 'Lymhurst', '2000': 'Bridgewatch',
-              '3004': 'Martlock', '4000': 'Fort Sterling', '3003': 'Caerleon'}
+def get_craftable_categories():
+    return [subcategory for city in crafting_bonus.values() for subcategory in city.keys()]
 
-BASE_CRAFTING_BONUS = 0.18
+
+crafting_bonus = load_crafting_modifiers()
+subcategories = get_craftable_categories()
