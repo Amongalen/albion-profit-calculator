@@ -2,6 +2,7 @@ from math import nan
 
 import numpy as np
 
+import albion_calculator.craftingmodifiers
 from albion_calculator import items, cities
 
 # MATRIX[transport_to][transport_from]
@@ -108,7 +109,7 @@ def calculate_final_profit_matrix(ingredients_costs, multiplier, recipe):
 
 def calculate_ingredients_costs(multiplier, recipe, use_focus):
     ingredients_price_matrices = {}
-    return_rates = cities.get_return_rates_vector(recipe.result_item_id, use_focus)
+    return_rates = albion_calculator.craftingmodifiers.get_return_rates_vector(recipe.result_item_id, use_focus)
     return_rates = np.atleast_2d(1 - return_rates).T
     for ingredient in recipe.ingredients:
         price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier
