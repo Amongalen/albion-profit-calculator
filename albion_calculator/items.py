@@ -64,12 +64,12 @@ def get_item_name(item_id):
 
 
 def load_items():
-    raw_items_data = load_items_file()
-    items_names = load_item_names()
+    raw_items_data = read_items_file()
+    items_names = read_item_names_file()
     enchantment_items = pull_out_enchantments(raw_items_data)
 
     raw_items_data = raw_items_data | enchantment_items
-    crafting_fame_dict = load_crafting_fame_file()
+    crafting_fame_dict = read_crafting_fame_file()
     items = create_items(raw_items_data, items_names, crafting_fame_dict)
     return items
 
@@ -188,13 +188,13 @@ def is_item_useful(item):
     return True
 
 
-def load_crafting_fame_file():
+def read_crafting_fame_file():
     with open(CRAFTING_FAME_JSON_FILE) as f:
         crafting_fame = json.load(f)
     return {key: value for key, value in crafting_fame.items() if value is not None}
 
 
-def load_items_file():
+def read_items_file():
     with open(ITEMS_JSON_FILE) as f:
         raw_items_data = json.load(f)
         raw_items_data = raw_items_data['items']
@@ -214,7 +214,7 @@ def add_missing_at_symbol(name):
     return name + '@' + match.group(2)
 
 
-def load_item_names():
+def read_item_names_file():
     items_names = {}
     with open(ITEM_NAMES_TXT_FILE) as f:
         for line in f:

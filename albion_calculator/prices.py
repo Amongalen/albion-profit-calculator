@@ -25,10 +25,10 @@ DEVIATION_THRESHOLD = 2
 def local_price_cache(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        result = load_local_cache()
+        result = read_local_cache_file()
         if result is None:
             result = func(*args, **kwargs)
-            write_to_local_cache(result)
+            write_to_local_cache_file(result)
         return result
 
     return wrapper
@@ -124,7 +124,7 @@ def get_json_from_url(url):
     return response_json
 
 
-def load_local_cache():
+def read_local_cache_file():
     if not is_cache_up_to_date():
         return None
     with open(CACHE_FILENAME) as f:
@@ -132,7 +132,7 @@ def load_local_cache():
     return cache
 
 
-def write_to_local_cache(cache_json):
+def write_to_local_cache_file(cache_json):
     with open(CACHE_FILENAME, 'w') as f:
         json.dump(cache_json, f, indent=1)
 
