@@ -63,6 +63,10 @@ def get_item_name(item_id):
     return items_data[item_id].name
 
 
+def get_item_crafting_fame(item_id):
+    return items_data[item_id].crafting_fame
+
+
 def load_items():
     raw_items_data = read_items_file()
     items_names = read_item_names_file()
@@ -97,7 +101,6 @@ def create_items(raw_items_data, items_names, crafting_fame_dict):
             full_journal_name = items_names[full_journal_id]
             items[full_journal_id] = Item(full_journal_id, full_journal_name, category, subcategory, base_item_id,
                                           all_recipes)
-    test = [item for item in items.values() if item.crafting_fame == 0]
     return items
 
 

@@ -89,6 +89,10 @@ def get_price_for_item_in_city(item_id, city_index):
     return get_prices_for_item(item_id)[city_index]
 
 
+def get_avg_price_for_item(item_id):
+    return np.nanmean(get_prices_for_item(item_id))
+
+
 def summarize_history_price(history_price):
     if not history_price:
         return {}
@@ -101,7 +105,7 @@ def summarize_history_price(history_price):
     data_24h = [record for record in data if parse_timestamp(record['timestamp']) > previous_day]
     price_sum_24h = sum(record['avg_price'] * record['item_count'] for record in data_24h)
     items_sold_24h = sum(record['item_count'] for record in data_24h)
-    avg_price_24h = price_sum_24h / items_sold_24h
+    avg_price_24h = round(price_sum_24h / items_sold_24h, 3)
 
     summary = {'item_id': history_price['item_id'],
                'latest_timestamp': str(latest_timestamp),
@@ -164,6 +168,6 @@ def normalize_datetime_format(record):
 # items_ids = items.load_items().keys()
 
 # for testing
-items_ids = ['T4_POTION_HEAL', 'T4_BURDOCK', 'T3_EGG']
+items_ids = ['T5_MAIN_SWORD', 'T5_PLANKS', 'T5_METALBAR', 'T5_LEATHER', 'T5_JOURNAL_WARRIOR_FULL']
 
 items_prices = load_all_prices(items_ids)
