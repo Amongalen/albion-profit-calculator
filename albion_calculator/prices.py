@@ -1,6 +1,7 @@
 import functools
 import json
 import pathlib
+from collections import defaultdict
 from datetime import datetime, timedelta
 from math import nan
 
@@ -16,8 +17,10 @@ CACHE_FILENAME = '../cache/price.cache'
 API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.json'
 
 REQUEST_PARAMS = {'locations': ','.join(cities_names()),
-                  'time-scale': 1,
-                  'qualities': 1}
+                  'time-scale': 6,
+                  'qualities': '1,2,3,4'}
+
+CHUNK_SIZE = 2
 
 DEVIATION_THRESHOLD = 2
 
@@ -36,28 +39,75 @@ def local_price_cache(func):
 
 @local_price_cache
 def load_all_prices(items_ids):
-    all_prices = {}
-    for item in items_ids:
-        prices = get_raw_prices_data_for_item(item)
-        all_prices[item] = prices
-    return all_prices
+    prices = {}
+    for chunk in chunks(items_ids, CHUNK_SIZE):
+        prices.update(get_prices_data_for_chunk(chunk))
+    return prices
 
 
-def get_raw_prices_data_for_item(item):
-    history_url = API_ADDRESS.format(type='history', items=item)
-    prices_url = API_ADDRESS.format(type='prices', items=item)
+def merge_quality_data(history_prices):
+    prices_with_merged_qualities = defaultdict(dict)
+    for item_id, prices_for_item in history_prices.items():
+        for city_name, prices_in_city in prices_for_item.items():
+            result_price_in_city = prices_in_city[0]
+            for record in prices_in_city[1:]:
+                result_price_in_city['data'].extend(record['data'])
+            prices_with_merged_qualities[item_id][city_name] = result_price_in_city
+    return prices_with_merged_qualities
 
-    history_prices = get_json_from_url(history_url)
-    latest_prices = get_json_from_url(prices_url)
-    history_prices_by_city = {record['location']: record for record in history_prices}
-    latest_prices_by_city = {record['city']: record for record in latest_prices}
+
+def filter_latest_quality_data(latest_prices):
+    prices_with_filtered_qualities = defaultdict(dict)
+    for item_id, prices_for_item in latest_prices.items():
+        for city_name, prices_in_city in prices_for_item.items():
+            sorted_prices = sorted(prices_in_city, key=lambda x: x['sell_price_min_date'], reverse=True)
+            prices_with_filtered_qualities[item_id][city_name] = sorted_prices[0]
+    return prices_with_filtered_qualities
+
+
+def get_prices_data_for_chunk(items_ids):
+    history_prices, latest_prices = get_prices_from_api(items_ids)
+
+    history_prices_by_item = group_by_attr(history_prices, 'item_id')
+    latest_prices_by_item = group_by_attr(latest_prices, 'item_id')
+
+    history_prices_by_item_and_city = {k: group_by_attr(v, 'location') for k, v in history_prices_by_item.items()}
+    latest_prices_by_item_and_city = {k: group_by_attr(v, 'city') for k, v in latest_prices_by_item.items()}
+    history_prices_with_merged_quality = merge_quality_data(history_prices_by_item_and_city)
+    filtered_latest_prices = filter_latest_quality_data(latest_prices_by_item_and_city)
+    result = {}
+    for item_id in items_ids:
+        history_prices_for_item = history_prices_with_merged_quality.get(item_id, {})
+        latest_prices_for_item = filtered_latest_prices.get(item_id, {})
+        result[item_id] = merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
+    return result
+
+
+def merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item):
     merged_prices_by_city = []
     for city in cities_names():
-        history_price = history_prices_by_city.get(city, {})
+        history_price = history_prices_for_item.get(city, {})
         history_price_summary = summarize_history_price(history_price)
-        latest_price = normalize_datetime_format(latest_prices_by_city.get(city, {}))
+        latest_price = normalize_datetime_format(latest_prices_for_item.get(city, {}))
         merged_prices_by_city.append(history_price_summary | latest_price)
     return merged_prices_by_city
+
+
+def group_by_attr(elements, attr):
+    result = defaultdict(list)
+    for record in elements:
+        item_id = record[attr]
+        result[item_id].append(record)
+    return result
+
+
+def get_prices_from_api(items_ids):
+    items_parameter = ','.join(items_ids)
+    history_url = API_ADDRESS.format(type='history', items=items_parameter)
+    prices_url = API_ADDRESS.format(type='prices', items=items_parameter)
+    history_prices = get_json_from_url(history_url)
+    latest_prices = get_json_from_url(prices_url)
+    return history_prices, latest_prices
 
 
 def get_prices_for_item(item_id):
@@ -96,8 +146,8 @@ def get_avg_price_for_item(item_id):
 def summarize_history_price(history_price):
     if not history_price:
         return {}
-    data = history_price['data']
-    latest_record = data[-1]
+    data = sorted(history_price['data'], key=lambda x: x['timestamp'], reverse=True)
+    latest_record = data[0]
     latest_timestamp = parse_timestamp(latest_record['timestamp'])
     previous_day = latest_timestamp - timedelta(days=1)
     items_sold = sum(record['item_count'] for record in data)
@@ -163,6 +213,12 @@ def normalize_datetime_format(record):
     record['buy_price_min_date'] = str(parse_timestamp(record['buy_price_min_date']))
     record['buy_price_max_date'] = str(parse_timestamp(record['buy_price_max_date']))
     return record
+
+
+def chunks(lst, n):
+    # Yield successive n-sized chunks from lst.
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 
 # items_ids = items.load_items().keys()
