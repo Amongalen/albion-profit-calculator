@@ -31,7 +31,7 @@ def load_crafting_modifiers():
 def get_return_rates_vector(item_id, use_focus=False):
     item_subcategory = items.get_item_subcategory(item_id)
     vector = [get_return_rate(city, item_subcategory, use_focus) for city in cities_names()]
-    return np.array(vector)
+    return np.atleast_2d(1 - np.array(vector)).T
 
 
 def get_return_rate(city, item_category, use_focus=False):

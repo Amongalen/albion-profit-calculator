@@ -74,10 +74,8 @@ def local_price_cache(func):
 
 @local_price_cache
 def load_all_prices(items_ids):
-    prices = {}
-    for chunk in chunks(items_ids, CHUNK_SIZE):
-        prices.update(get_prices_data_for_chunk(chunk))
-    return prices
+    return {k: v for chunk in chunks(items_ids, CHUNK_SIZE)
+            for k, v in get_prices_data_for_chunk(chunk).items()}
 
 
 def merge_quality_data(history_prices):
@@ -149,22 +147,19 @@ def summarize_history_price(history_price):
     if not history_price:
         return {}
     data = sorted(history_price['data'], key=lambda x: x['timestamp'], reverse=True)
-    latest_record = data[0]
-    latest_timestamp = parse_timestamp(latest_record['timestamp'])
-    previous_day = latest_timestamp - timedelta(days=1)
-    items_sold = sum(record['item_count'] for record in data)
+    latest_timestamp = parse_timestamp(data[0]['timestamp'])
+    day_before = latest_timestamp - timedelta(days=1)
 
-    data_24h = [record for record in data if parse_timestamp(record['timestamp']) > previous_day]
+    data_24h = [record for record in data if parse_timestamp(record['timestamp']) > day_before]
     price_sum_24h = sum(record['avg_price'] * record['item_count'] for record in data_24h)
     items_sold_24h = sum(record['item_count'] for record in data_24h)
     avg_price_24h = round(price_sum_24h / items_sold_24h, 3)
 
-    summary = {'item_id': history_price['item_id'],
-               'latest_timestamp': str(latest_timestamp),
-               'items_sold': items_sold,
-               'avg_price_24h': avg_price_24h}
-
-    return summary
+    items_sold = sum(record['item_count'] for record in data)
+    return {'item_id': history_price['item_id'],
+            'latest_timestamp': str(latest_timestamp),
+            'items_sold': items_sold,
+            'avg_price_24h': avg_price_24h}
 
 
 def parse_timestamp(timestamp_str):
@@ -173,11 +168,7 @@ def parse_timestamp(timestamp_str):
 
 def get_json_from_url(url):
     response = requests.get(url, params=REQUEST_PARAMS)
-    if not response:
-        response_json = None
-    else:
-        response_json = response.json()
-    return response_json
+    return response.json() if response.ok else None
 
 
 def read_local_cache_file():
@@ -203,10 +194,7 @@ def is_cache_up_to_date():
     current_time = datetime.now()
     elapsed_time = current_time - modification_time
     hours_passed = elapsed_time // timedelta(hours=1)
-    if hours_passed >= CACHE_LIFETIME:
-        return False
-
-    return True
+    return hours_passed < CACHE_LIFETIME
 
 
 def normalize_datetime_format(record):
