@@ -13,10 +13,10 @@ CRAFTING_FAME_JSON_FILE = '../resources/crafting_fame.json'
 
 ITEM_ID_KEY = '@uniquename'
 
-FILTERED_CATEGORIES = {'luxurygoods', 'other', 'token', 'trophies', 'farmables'}
-FILTERED_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
-                          'banner', 'decoration_furniture', 'morgana_furniture', 'keeper_furniture',
-                          'heretic_furniture'}
+FILTERED_OUT_CATEGORIES = {'luxurygoods', 'other', 'token', 'trophies', 'farmables'}
+FILTERED_OUT_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
+                              'banner', 'decoration_furniture', 'morgana_furniture', 'keeper_furniture',
+                              'heretic_furniture'}
 WANTED_ITEM_TYPES = ['farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
                      'weapon', 'mount', 'furnitureitem', 'journalitem']
 
@@ -49,23 +49,23 @@ class Item:
 
 
 def get_all_items_ids():
-    return items_data.keys()
+    return _items_data.keys()
 
 
 def get_item_subcategory(item_id):
-    return items_data[item_id].subcategory
+    return _items_data[item_id].subcategory
 
 
 def get_all_recipes():
-    return recipes
+    return _recipes
 
 
 def get_item_name(item_id):
-    return items_data[item_id].name
+    return _items_data[item_id].name
 
 
 def get_item_crafting_fame(item_id):
-    return items_data[item_id].crafting_fame
+    return _items_data[item_id].crafting_fame
 
 
 def load_items():
@@ -74,12 +74,12 @@ def load_items():
     enchantment_items = pull_out_enchantments(raw_items_data)
 
     raw_items_data = raw_items_data | enchantment_items
-    crafting_fame_dict = read_crafting_fame_file()
-    items = create_items(raw_items_data, items_names, crafting_fame_dict)
+    crafting_fame = read_crafting_fame_file()
+    items = create_items(raw_items_data, items_names, crafting_fame)
     return items
 
 
-def create_items(raw_items_data, items_names, crafting_fame_dict):
+def create_items(raw_items_data, items_names, crafting_fame):
     items = {}
     # there are some weird items without name, probably unused ones - lets remove those
     raw_items_data = {k: v for k, v in raw_items_data.items() if k in items_names}
@@ -89,19 +89,19 @@ def create_items(raw_items_data, items_names, crafting_fame_dict):
         name = items_names[item_id]
         category = item_data['@shopcategory']
         subcategory = item_data['@shopsubcategory1']
-        all_recipes = extract_recipes(item_data)
+        recipes = extract_recipes(item_data)
         base_item_id = item_data.get('base_item_id', None)
-        crafting_fame = crafting_fame_dict.get(item_id, 0)
-        items[item_id] = Item(item_id, name, category, subcategory, base_item_id, all_recipes, crafting_fame)
+        items[item_id] = Item(item_id, name, category, subcategory, base_item_id,
+                              recipes, crafting_fame.get(item_id, 0))
         if 'JOURNAL' in item_id:
             empty_journal_id = item_id + '_EMPTY'
             empty_journal_name = items_names[empty_journal_id]
             items[empty_journal_id] = Item(empty_journal_id, empty_journal_name, category, subcategory, base_item_id,
-                                           all_recipes)
+                                           recipes)
             full_journal_id = item_id + '_FULL'
             full_journal_name = items_names[full_journal_id]
             items[full_journal_id] = Item(full_journal_id, full_journal_name, category, subcategory, base_item_id,
-                                          all_recipes)
+                                          recipes)
     return items
 
 
@@ -115,8 +115,7 @@ def extract_recipes(item):
 def extract_recipes_details(item, is_upgrade_recipe):
     data_source = 'upgraderequirements' if is_upgrade_recipe else 'craftingrequirements'
     recipes_data = item.get(data_source, None)
-    if not isinstance(recipes_data, list):
-        recipes_data = [recipes_data]
+    recipes_data = recipes_data if isinstance(recipes_data, list) else [recipes_data]
     recipes_details = [recipe for recipe_data in recipes_data
                        if (recipe := extract_single_recipe_details(recipe_data, item, is_upgrade_recipe))
                        is not None]
@@ -137,11 +136,10 @@ def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
     result_quantity = int(recipe_data.get('@amountcrafted', 1))
     silver_cost = int(recipe_data.get('@silver', 0))
 
-    if not isinstance(craft_resources, list):
-        craft_resources = [craft_resources]
+    craft_resources = craft_resources if isinstance(craft_resources, list) else [craft_resources]
 
-    ingredients = [Ingredient(x[ITEM_ID_KEY], int(x['@count']), float(x.get('@maxreturnamount', math.inf))) for x in
-                   craft_resources]
+    ingredients = [Ingredient(x[ITEM_ID_KEY], int(x['@count']), float(x.get('@maxreturnamount', math.inf)))
+                   for x in craft_resources]
     if is_upgrade_recipe:
         base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)
         ingredients.append(base_item_ingredient)
@@ -150,34 +148,34 @@ def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
 
 
 def pull_out_enchantments(raw_items_data):
-    new_items = {}
-    for k, v in raw_items_data.items():
+    enchantment_items = {}
+    for v in raw_items_data.values():
         enchantments = v.get('enchantments', {}).get('enchantment', None)
-        if enchantments is not None:
-            if not isinstance(enchantments, list):
-                enchantments = [enchantments]
+        if enchantments is None:
+            continue
+        enchantments = enchantments if isinstance(enchantments, list) else [enchantments]
 
-            for enchantment in enchantments:
-                new_item = copy.copy(v)
-                new_item.pop('craftingrequirements', None)
-                new_item.pop('enchantments', None)
-                new_item.pop('upgraderequirements', None)
-                new_item['craftingrequirements'] = enchantment['craftingrequirements']
-                new_item['upgraderequirements'] = enchantment['upgraderequirements']
-                new_id = new_item[ITEM_ID_KEY] + '@' + enchantment['@enchantmentlevel']
-                new_item[ITEM_ID_KEY] = new_id
-                new_item['base_item_id'] = v[ITEM_ID_KEY]
-                new_items[new_id] = new_item
+        for enchantment in enchantments:
+            new_item = copy.copy(v)
+            new_item.pop('craftingrequirements', None)
+            new_item.pop('enchantments', None)
+            new_item.pop('upgraderequirements', None)
+            new_item['craftingrequirements'] = enchantment['craftingrequirements']
+            new_item['upgraderequirements'] = enchantment['upgraderequirements']
+            new_id = new_item[ITEM_ID_KEY] + '@' + enchantment['@enchantmentlevel']
+            new_item[ITEM_ID_KEY] = new_id
+            new_item['base_item_id'] = v[ITEM_ID_KEY]
+            enchantment_items[new_id] = new_item
 
-    return new_items
+    return enchantment_items
 
 
 def is_item_useful(item):
     category = item['@shopcategory']
     subcategory = item['@shopsubcategory1']
-    if category in FILTERED_CATEGORIES and not subcategory == 'royalsigils':
+    if category in FILTERED_OUT_CATEGORIES and not subcategory == 'royalsigils':
         return False
-    if subcategory in FILTERED_SUBCATEGORIES:
+    if subcategory in FILTERED_OUT_SUBCATEGORIES:
         return False
     if category == 'furniture' and item[ITEM_ID_KEY].startswith('UNIQUE'):
         return False
@@ -223,13 +221,14 @@ def read_item_names_file():
 
 
 def load_recipes():
-    return [recipe for item in items_data.values() for recipe in item.recipes]
+    return [recipe for item in _items_data.values() for recipe in item.recipes]
 
 
 def get_items_ids_for_category_or_subcategory(*args):
-    items_ids = [item_id for item_id, item in items_data.items() if item.subcategory in args or item.category in args]
-    return items_ids
+    return [item_id for item_id, item in _items_data.items()
+            if item.subcategory in args
+            or item.category in args]
 
 
-items_data = load_items()
-recipes = load_recipes()
+_items_data = load_items()
+_recipes = load_recipes()

@@ -25,6 +25,39 @@ CHUNK_SIZE = 2
 DEVIATION_THRESHOLD = 2
 
 
+def get_price_for_item_in_city(item_id, city_index):
+    return get_prices_for_item(item_id)[city_index]
+
+
+def get_prices_for_item(item_id):
+    result = []
+    prices = items_prices.get(item_id, None)
+    if prices is None:
+        a = np.empty((6,))
+        a[:] = nan
+        return a
+    for record in prices:
+        if not record:
+            result.append(nan)
+            continue
+        min_price = record['sell_price_min']
+        avg_price_24h = record.get('avg_price_24h', 0)
+        # deviation used to remove anomalous values
+        deviation = min_price / avg_price_24h if avg_price_24h != 0 else min_price
+        if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
+            price = min_price
+        elif avg_price_24h != 0:
+            price = avg_price_24h
+        else:
+            price = nan
+        result.append(price)
+    return np.array(result)
+
+
+def get_avg_price_for_item(item_id):
+    return np.nanmean(get_prices_for_item(item_id))
+
+
 def local_price_cache(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -108,39 +141,6 @@ def get_prices_from_api(items_ids):
     history_prices = get_json_from_url(history_url)
     latest_prices = get_json_from_url(prices_url)
     return history_prices, latest_prices
-
-
-def get_prices_for_item(item_id):
-    result = []
-    prices = items_prices.get(item_id, None)
-    if prices is None:
-        a = np.empty((6,))
-        a[:] = nan
-        return a
-    for record in prices:
-        if not record:
-            result.append(nan)
-            continue
-        min_price = record['sell_price_min']
-        avg_price_24h = record.get('avg_price_24h', 0)
-        # deviation used to remove anomalous values
-        deviation = min_price / avg_price_24h if avg_price_24h != 0 else min_price
-        if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
-            price = min_price
-        elif avg_price_24h != 0:
-            price = avg_price_24h
-        else:
-            price = nan
-        result.append(price)
-    return np.array(result)
-
-
-def get_price_for_item_in_city(item_id, city_index):
-    return get_prices_for_item(item_id)[city_index]
-
-
-def get_avg_price_for_item(item_id):
-    return np.nanmean(get_prices_for_item(item_id))
 
 
 def summarize_history_price(history_price):
