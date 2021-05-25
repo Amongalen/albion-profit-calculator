@@ -27,6 +27,7 @@ Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate
 class Recipe:
     CRAFTING_RECIPE = 'crafting'
     UPGRADE_RECIPE = 'upgrade'
+    TRANSPORT_RECIPE = 'transport'
 
     result_item_id: str
     recipe_type: str
@@ -105,41 +106,34 @@ def create_items(raw_items_data, items_names, crafting_fame_dict):
 
 
 def extract_recipes(item):
-    recipes = []
+    crafting_recipes = extract_recipes_details(item, is_upgrade_recipe=False)
+    upgrade_recipes = extract_recipes_details(item, is_upgrade_recipe=True)
 
-    crafting_recipes_data = item.get('craftingrequirements', None)
-    if not isinstance(crafting_recipes_data, list):
-        crafting_recipes_data = [crafting_recipes_data]
-
-    for recipe_data in crafting_recipes_data:
-        if recipe_data is not None:
-            recipe = extract_recipe_details(recipe_data, item, is_upgrade_recipe=False)
-            if recipe is not None:
-                recipes.append(recipe)
-
-    upgrade_recipes_data = item.get('upgraderequirements', None)
-    if not isinstance(upgrade_recipes_data, list):
-        upgrade_recipes_data = [upgrade_recipes_data]
-
-    for recipe_data in upgrade_recipes_data:
-        if recipe_data is not None:
-            recipe = extract_recipe_details(recipe_data, item, is_upgrade_recipe=True)
-            if recipe is not None:
-                recipes.append(recipe)
-
-    return recipes
+    return crafting_recipes + upgrade_recipes
 
 
-def extract_recipe_details(recipe_data, item, is_upgrade_recipe):
-    if is_upgrade_recipe:
-        craft_resources = recipe_data.get('upgraderesource', None)
-    else:
-        craft_resources = recipe_data.get('craftresource', None)
+def extract_recipes_details(item, is_upgrade_recipe):
+    data_source = 'upgraderequirements' if is_upgrade_recipe else 'craftingrequirements'
+    recipes_data = item.get(data_source, None)
+    if not isinstance(recipes_data, list):
+        recipes_data = [recipes_data]
+    recipes_details = [recipe for recipe_data in recipes_data
+                       if (recipe := extract_single_recipe_details(recipe_data, item, is_upgrade_recipe))
+                       is not None]
+
+    return recipes_details
+
+
+def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
+    if recipe_data is None:
+        return None
+    data_source = 'upgraderesource' if is_upgrade_recipe else 'craftresource'
+    craft_resources = recipe_data.get(data_source, None)
     if craft_resources is None:
-        return
+        return None
 
-    result_item_id = item[ITEM_ID_KEY]
-    result_item_id = add_missing_at_symbol(result_item_id)
+    recipe_type = Recipe.UPGRADE_RECIPE if is_upgrade_recipe else Recipe.CRAFTING_RECIPE
+    result_item_id = add_missing_at_symbol(item[ITEM_ID_KEY])
     result_quantity = int(recipe_data.get('@amountcrafted', 1))
     silver_cost = int(recipe_data.get('@silver', 0))
 
@@ -152,7 +146,6 @@ def extract_recipe_details(recipe_data, item, is_upgrade_recipe):
         base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)
         ingredients.append(base_item_ingredient)
 
-    recipe_type = Recipe.UPGRADE_RECIPE if is_upgrade_recipe else Recipe.CRAFTING_RECIPE
     return Recipe(result_item_id, recipe_type, result_quantity, silver_cost, ingredients)
 
 
