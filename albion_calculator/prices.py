@@ -30,28 +30,30 @@ def get_price_for_item_in_city(item_id, city_index):
 
 
 def get_prices_for_item(item_id):
-    result = []
     prices = items_prices.get(item_id, None)
     if prices is None:
         a = np.empty((6,))
         a[:] = nan
         return a
-    for record in prices:
-        if not record:
-            result.append(nan)
-            continue
-        min_price = record['sell_price_min']
-        avg_price_24h = record.get('avg_price_24h', 0)
-        # deviation used to remove anomalous values
-        deviation = min_price / avg_price_24h if avg_price_24h != 0 else min_price
-        if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
-            price = min_price
-        elif avg_price_24h != 0:
-            price = avg_price_24h
-        else:
-            price = nan
-        result.append(price)
-    return np.array(result)
+
+    return np.array([estimate_real_price(prices_in_city) for prices_in_city in prices])
+
+
+def estimate_real_price(prices_in_city):
+    if not prices_in_city:
+        return nan
+
+    min_price = prices_in_city.get('sell_price_min', 0)
+    avg_price_24h = prices_in_city.get('avg_price_24h', 0)
+
+    if avg_price_24h == 0:
+        return nan
+
+    # deviation used to remove anomalous values
+    deviation = min_price / avg_price_24h
+    if min_price != 0 and 1 / DEVIATION_THRESHOLD <= deviation <= DEVIATION_THRESHOLD:
+        return min_price
+    return avg_price_24h
 
 
 def get_avg_price_for_item(item_id):
