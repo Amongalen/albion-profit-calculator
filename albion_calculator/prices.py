@@ -8,6 +8,7 @@ from math import nan
 import numpy as np
 import requests as requests
 
+from albion_calculator import items
 from albion_calculator.cities import cities_names
 
 CACHE_LIFETIME = 12
@@ -20,7 +21,7 @@ REQUEST_PARAMS = {'locations': ','.join(cities_names()),
                   'time-scale': 6,
                   'qualities': '1,2,3,4'}
 
-CHUNK_SIZE = 2
+CHUNK_SIZE = 50
 
 DEVIATION_THRESHOLD = 2
 
@@ -101,6 +102,9 @@ def filter_latest_quality_data(latest_prices):
 def get_prices_data_for_chunk(items_ids):
     history_prices, latest_prices = get_prices_from_api(items_ids)
 
+    if history_prices is None or latest_prices is None:
+        return {}
+
     history_prices_by_item = group_by_attr(history_prices, 'item_id')
     latest_prices_by_item = group_by_attr(latest_prices, 'item_id')
 
@@ -168,6 +172,8 @@ def parse_timestamp(timestamp_str):
 
 def get_json_from_url(url):
     response = requests.get(url, params=REQUEST_PARAMS)
+    if not response.ok:
+        print(f'{response.status_code} {response.text}')
     return response.json() if response.ok else None
 
 
@@ -211,9 +217,9 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
-# items_ids = items.load_items().keys()
+items_ids = list(items.load_items().keys())
 
 # for testing
-items_ids = ['T5_MAIN_SWORD', 'T5_PLANKS', 'T5_METALBAR', 'T5_LEATHER', 'T5_JOURNAL_WARRIOR_FULL']
+# items_ids = ['T5_MAIN_SWORD', 'T5_PLANKS', 'T5_METALBAR', 'T5_LEATHER', 'T5_JOURNAL_WARRIOR_FULL']
 
 items_prices = load_all_prices(items_ids)
