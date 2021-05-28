@@ -31,7 +31,7 @@ class Recipe:
 
     result_item_id: str
     recipe_type: str
-    result_quantity: int = 0
+    result_quantity: int = 1
     silver_cost: int = 0
     ingredients: List[Ingredient] = field(default_factory=list)
 
@@ -49,7 +49,7 @@ class Item:
 
 
 def get_all_items_ids():
-    return _items_data.keys()
+    return list(_items_data.keys())
 
 
 def get_item_subcategory(item_id):
@@ -108,8 +108,10 @@ def create_items(raw_items_data, items_names, crafting_fame):
 def extract_recipes(item):
     crafting_recipes = extract_recipes_details(item, is_upgrade_recipe=False)
     upgrade_recipes = extract_recipes_details(item, is_upgrade_recipe=True)
-
-    return crafting_recipes + upgrade_recipes
+    item_id = add_missing_at_symbol(item[ITEM_ID_KEY])
+    transport_recipe = [Recipe(item_id, Recipe.TRANSPORT_RECIPE,
+                               ingredients=[Ingredient(item_id, 1, 0)])]
+    return crafting_recipes + upgrade_recipes + transport_recipe
 
 
 def extract_recipes_details(item, is_upgrade_recipe):
@@ -138,7 +140,8 @@ def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
 
     craft_resources = craft_resources if isinstance(craft_resources, list) else [craft_resources]
 
-    ingredients = [Ingredient(x[ITEM_ID_KEY], int(x['@count']), float(x.get('@maxreturnamount', math.inf)))
+    ingredients = [Ingredient(add_missing_at_symbol(x[ITEM_ID_KEY]),
+                              int(x['@count']), float(x.get('@maxreturnamount', math.inf)))
                    for x in craft_resources]
     if is_upgrade_recipe:
         base_item_ingredient = Ingredient(item['base_item_id'], 1, math.inf)

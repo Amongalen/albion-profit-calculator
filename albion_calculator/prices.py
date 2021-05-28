@@ -7,11 +7,12 @@ from math import nan
 
 import numpy as np
 import requests as requests
+import tqdm as tqdm
 
 from albion_calculator import items
 from albion_calculator.cities import cities_names
 
-CACHE_LIFETIME = 12
+CACHE_LIFETIME = 11
 
 CACHE_FILENAME = '../cache/price.cache'
 
@@ -24,6 +25,8 @@ REQUEST_PARAMS = {'locations': ','.join(cities_names()),
 CHUNK_SIZE = 50
 
 DEVIATION_THRESHOLD = 2
+
+items_prices = {}
 
 
 def get_price_for_item_in_city(item_id, city_index):
@@ -213,13 +216,14 @@ def normalize_datetime_format(record):
 
 def chunks(lst, n):
     # Yield successive n-sized chunks from lst.
-    for i in range(0, len(lst), n):
+    for i in tqdm.tqdm(range(0, len(lst), n), desc='Pulling prices'):
         yield lst[i:i + n]
 
 
-items_ids = list(items.load_items().keys())
+def update_prices():
+    global items_prices
+    items_ids = items.get_all_items_ids()
+    items_prices = load_all_prices(items_ids)
 
-# for testing
-# items_ids = ['T5_MAIN_SWORD', 'T5_PLANKS', 'T5_METALBAR', 'T5_LEATHER', 'T5_JOURNAL_WARRIOR_FULL']
 
-items_prices = load_all_prices(items_ids)
+update_prices()

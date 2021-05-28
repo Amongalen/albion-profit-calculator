@@ -1,6 +1,9 @@
+import time
+from datetime import timedelta
 from math import nan
 
 import numpy as np
+import tqdm
 
 from albion_calculator import items, cities, journals, prices, craftingmodifiers
 
@@ -35,14 +38,30 @@ NO_TRAVEL_MULTIPLIER = np.array([
 ])
 
 
+def one_city_multipliers():
+    arrays = []
+    for i in range(6):
+        array = np.empty((6, 6))
+        array[:] = nan
+        array[i][i] = 1
+        arrays.append(array)
+    return arrays
+
+
+ONE_CITY_ONLY_MULTIPLIERS = one_city_multipliers()
+
+
 # @todo refactor this crap
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     ingredients_costs = calculate_ingredients_costs(multiplier, recipe, use_focus)
     missing_ingredients = check_missing_ingredients_prices(ingredients_costs, recipe)
     if missing_ingredients:
-        return {'missing_ingredients': missing_ingredients}
+        return {'missing_item_price': missing_ingredients}
 
     final_profit_matrix = calculate_final_profit_matrix(ingredients_costs, multiplier, recipe)
+    isnan = np.isnan(final_profit_matrix).all()
+    if isnan:
+        return {'missing_item_price': recipe.result_item_id}
 
     max_profit_index = np.unravel_index(np.nanargmax(final_profit_matrix), final_profit_matrix.shape)
     destination_city_index = max_profit_index[0]
@@ -144,11 +163,18 @@ def calculate_single_ingredient_cost(ingredient, multiplier, recipe_type, return
     return price_matrix
 
 
+calculations = []
+
+
+def initialize_or_update_calculations():
+    global calculations
+    prices.update_prices()
+    calculations = [calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
+                    for recipe in items.get_all_recipes()]
+
+
 if __name__ == '__main__':
-    items_data = items.load_items()
+    result = [calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
+              for recipe in tqdm.tqdm(items.get_all_recipes(), desc='calculating profit')]
 
-    T5_MAIN_SWORD = items_data['T5_MAIN_SWORD']
-    recipe = T5_MAIN_SWORD.recipes[0]
-
-    result = calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
     print('end')
