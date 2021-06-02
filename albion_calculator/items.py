@@ -60,6 +60,18 @@ def get_all_recipes():
     return _recipes
 
 
+def get_all_transport_recipes():
+    return _transport_recipes
+
+
+def get_all_upgrade_recipes():
+    return _upgrade_recipes
+
+
+def get_all_crafting_recipes():
+    return _crafting_recipes
+
+
 def get_item_name(item_id):
     return _items_data[item_id].name
 
@@ -235,3 +247,6 @@ def get_items_ids_for_category_or_subcategory(*args):
 
 _items_data = load_items()
 _recipes = load_recipes()
+_crafting_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.CRAFTING_RECIPE]
+_upgrade_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.UPGRADE_RECIPE]
+_transport_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.TRANSPORT_RECIPE]

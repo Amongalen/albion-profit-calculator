@@ -28,19 +28,25 @@ DEVIATION_THRESHOLD = 2
 
 items_prices = {}
 
+estimated_real_prices = {}
+
 
 def get_price_for_item_in_city(item_id, city_index):
     return get_prices_for_item(item_id)[city_index]
 
 
 def get_prices_for_item(item_id):
-    prices = items_prices.get(item_id, None)
+    prices = estimated_real_prices.get(item_id, None)
     if prices is None:
         a = np.empty((6,))
         a[:] = nan
         return a
 
-    return np.array([estimate_real_price(prices_in_city) for prices_in_city in prices])
+    return prices
+
+
+def estimate_real_prices_for_item(item_id):
+    return np.array([estimate_real_price(prices_in_city) for prices_in_city in items_prices[item_id]])
 
 
 def estimate_real_price(prices_in_city):
@@ -221,9 +227,9 @@ def chunks(lst, n):
 
 
 def update_prices():
-    global items_prices
+    global items_prices, estimated_real_prices
     items_ids = items.get_all_items_ids()
     items_prices = load_all_prices(items_ids)
+    estimated_real_prices = {item_id: estimate_real_prices_for_item(item_id) for item_id in items_ids}
 
-
-update_prices()
+# update_prices()
