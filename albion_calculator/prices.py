@@ -14,7 +14,7 @@ from albion_calculator.cities import cities_names
 
 CACHE_LIFETIME = 11
 
-CACHE_FILENAME = '../cache/price.cache'
+CACHE_FILENAME = 'cache/price.cache'
 
 API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.json'
 

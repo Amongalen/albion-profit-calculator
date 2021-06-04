@@ -1,0 +1,80 @@
+<!doctype html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <title> Albion Profit Calculator</title>
+</head>
+<body onload="document.criteria.reset();">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1>Albion Profit Calculator</h1>
+    </header>
+    <form method="post" name="criteria">
+        <label for="type">Type</label>
+        <select name="type" id="type" onchange="handle_type_change(this.value)">
+            <option value="transport" selected>Transport</option>
+            <option value="crafting">Crafting</option>
+            <option value="upgrade">Upgrade</option>
+        </select>
+        <label for="limitation">Limitation</label>
+        <select name="limitation" id="limitation" onchange="handle_limitation_change(this.value)">
+            <option value="none" selected>None</option>
+            <option value="no risk">No risk</option>
+            {#                <option value="no transport">No transporting</option>#}
+            {#                <option value="per city">In specific city</option>#}
+        </select>
+        <label for="city">City</label>
+        <select name="city" id="city" disabled>
+            <option value="0" selected>Fort Sterling</option>
+            <option value="1">Lymhurst</option>
+            <option value="2">Bridgewatch</option>
+            <option value="3">Martlock</option>
+            <option value="4">Thetford</option>
+            <option value="5">Caerleon</option>
+        </select>
+
+        <label for="focus">Use focus</label>
+        <input disabled id="focus" name="focus" type="checkbox" value="focus">
+        <input type="submit" value="Show">
+    </form>
+    {% block content %}{% endblock %}
+</section>
+<script type="text/javascript">
+    function handle_type_change(value) {
+        const all_options = {
+            'none': 'None',
+            'no risk': 'No risk',
+            'no transport': 'No transporting',
+            'per city': 'In specific city',
+        }
+        const transport_options = {
+            'none': 'None',
+            'no risk': 'No risk',
+        }
+        let select = document.getElementById('limitation')
+
+        while (select.firstChild) {
+            select.removeChild(select.firstChild);
+        }
+        let options;
+        options = value === 'transport' ? transport_options : all_options;
+        for (const option_value in options) {
+            if (options.hasOwnProperty(option_value)) {
+                let option = document.createElement("option");
+                option.value = option_value;
+                option.text = options[option_value]
+                select.append(option)
+            }
+        }
+
+        document.getElementById('focus').disabled = value !== 'crafting';
+    }
+
+    function handle_limitation_change(value) {
+        document.getElementById('city').disabled = value !== 'per city';
+    }
+</script>
+</body>
+
+

@@ -5,11 +5,11 @@ import re
 from dataclasses import dataclass, field
 from typing import List, NamedTuple
 
-ITEM_NAMES_TXT_FILE = '../resources/item_names.txt'
+ITEM_NAMES_TXT_FILE = 'resources/item_names.txt'
 
-ITEMS_JSON_FILE = '../resources/items.json'
+ITEMS_JSON_FILE = 'resources/items.json'
 
-CRAFTING_FAME_JSON_FILE = '../resources/crafting_fame.json'
+CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
 
 ITEM_ID_KEY = '@uniquename'
 

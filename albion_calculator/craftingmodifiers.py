@@ -45,7 +45,7 @@ def replace_refining_category(name):
 
 
 def load_crafting_modifiers_file():
-    with open('../resources/craftingmodifiers.json') as f:
+    with open('resources/craftingmodifiers.json') as f:
         raw_crafting_modifiers_data = json.load(f)
     return raw_crafting_modifiers_data['craftingmodifiers']['craftinglocation']
 

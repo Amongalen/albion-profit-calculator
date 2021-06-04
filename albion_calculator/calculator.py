@@ -108,18 +108,20 @@ def summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_deta
                                                                      final_profit_matrix.shape)
     ingredients_details = summarize_ingredient_details(ingredients_costs, multiplier, production_city_index, recipe)
     final_product_price = get_price_for_item_in_city(recipe.result_item_id, destination_city_index)
+    ingredients_total_cost = sum(ingredient['total_cost_with_returns'] for ingredient in ingredients_details)
     max_profit_details = {
         'product': recipe.result_item_id,
         'product_quantity': recipe.result_quantity,
         'profit_without_journals': round(max_profit, 2),
         'profit_with_journals': round(final_profit, 2),
         'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
+        'profit_percentage': round(final_profit / ingredients_total_cost, 2),
         'journals_filled': round(journal_profit_details['journals_filled'], 2),
         'destination_city': cities.city_at_index(destination_city_index),
         'production_city': cities.city_at_index(production_city_index),
         'final_product_price': round(final_product_price, 2),
         'ingredients_details': ingredients_details,
-        'ingredients_total_cost': sum(ingredient['total_cost_with_returns'] for ingredient in ingredients_details)
+        'ingredients_total_cost': ingredients_total_cost
     }
     return max_profit_details
 
