@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 from datetime import timedelta
 from math import nan
@@ -6,11 +7,10 @@ from math import nan
 import numpy as np
 import tqdm
 
-from albion_calculator import items, cities, journals, prices, craftingmodifiers
+from albion_calculator import items, cities, journals, market, craftingmodifiers
 
-# MATRIX[transport_to][transport_from]
 from albion_calculator.items import Recipe
-from albion_calculator.prices import get_prices_for_item, get_price_for_item_in_city
+from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
 UPGRADE_TRAVEL = 'UPGRADE_TRAVEL'
 
@@ -22,7 +22,7 @@ UPGRADE_PER_CITY = 'UPGRADE_PER_CITY'
 
 TRANSPORT_NO_RISK = 'TRANSPORT_NO_RISK'
 
-TRANSPORT = 'TRANSPORT'
+TRANSPORT_TRAVEL = 'TRANSPORT_TRAVEL'
 
 CRAFTING_NO_RISK_WITH_FOCUS = 'CRAFTING_NO_RISK_WITH_FOCUS'
 
@@ -40,30 +40,49 @@ CRAFTING_PER_CITY_NO_FOCUS = 'CRAFTING_PER_CITY_NO_FOCUS'
 
 CRAFTING_NO_TRAVEL_NO_FOCUS = 'CRAFTING_NO_TRAVEL_NO_FOCUS'
 
+LOW_CONFIDENCE_THRESHOLD = 20
+
+# MATRIX[transport_to][transport_from]
 TRAVEL_COST_MULTIPLIER = np.array([
-    [1.00, 1.05, 1.10, 1.10, 1.05, 1.05],
-    [1.05, 1.00, 1.05, 1.10, 1.10, 1.05],
-    [1.10, 1.05, 1.00, 1.05, 1.10, 1.05],
-    [1.10, 1.10, 1.05, 1.00, 1.05, 1.05],
-    [1.05, 1.10, 1.10, 1.05, 1.00, 1.05],
-    [1.05, 1.05, 1.05, 1.05, 1.05, 1.00]
+    [1.0, 1.1, 1.2, 1.2, 1.1, 1.1],
+    [1.1, 1.0, 1.1, 1.2, 1.2, 1.1],
+    [1.2, 1.1, 1.0, 1.1, 1.2, 1.1],
+    [1.2, 1.2, 1.1, 1.0, 1.1, 1.1],
+    [1.1, 1.2, 1.2, 1.1, 1.0, 1.1],
+    [1.1, 1.1, 1.1, 1.1, 1.1, 1.0]
 ])
 TRAVEL_COST_NO_RISK_MULTIPLIER = np.array([
-    [1.00, 1.05, 1.10, 1.10, 1.05, nan],
-    [1.05, 1.00, 1.05, 1.10, 1.10, nan],
-    [1.10, 1.05, 1.00, 1.05, 1.10, nan],
-    [1.10, 1.10, 1.05, 1.00, 1.05, nan],
-    [1.05, 1.10, 1.10, 1.05, 1.00, nan],
-    [nan, nan, nan, nan, nan, 1.00]
+    [1.0, 1.1, 1.2, 1.2, 1.1, nan],
+    [1.1, 1.0, 1.1, 1.2, 1.2, nan],
+    [1.2, 1.1, 1.0, 1.1, 1.2, nan],
+    [1.2, 1.2, 1.1, 1.0, 1.1, nan],
+    [1.1, 1.2, 1.2, 1.1, 1.0, nan],
+    [nan, nan, nan, nan, nan, 1.0]
+])
+TRANSPORT_TRAVEL_COST_MULTIPLIER = np.array([
+    [nan, 1.1, 1.2, 1.2, 1.1, 1.1],
+    [1.1, nan, 1.1, 1.2, 1.2, 1.1],
+    [1.2, 1.1, nan, 1.1, 1.2, 1.1],
+    [1.2, 1.2, 1.1, nan, 1.1, 1.1],
+    [1.1, 1.2, 1.2, 1.1, nan, 1.1],
+    [1.1, 1.1, 1.1, 1.1, 1.1, nan]
+])
+TRANSPORT_TRAVEL_COST_NO_RISK_MULTIPLIER = np.array([
+    [nan, 1.1, 1.2, 1.2, 1.1, nan],
+    [1.1, nan, 1.1, 1.2, 1.2, nan],
+    [1.2, 1.1, nan, 1.1, 1.2, nan],
+    [1.2, 1.2, 1.1, nan, 1.1, nan],
+    [1.1, 1.2, 1.2, 1.1, nan, nan],
+    [nan, nan, nan, nan, nan, nan]
 ])
 
 NO_TRAVEL_MULTIPLIER = np.array([
-    [1.00, nan, nan, nan, nan, nan],
-    [nan, 1.00, nan, nan, nan, nan],
-    [nan, nan, 1.00, nan, nan, nan],
-    [nan, nan, nan, 1.00, nan, nan],
-    [nan, nan, nan, nan, 1.00, nan],
-    [nan, nan, nan, nan, nan, 1.00]
+    [1.0, nan, nan, nan, nan, nan],
+    [nan, 1.0, nan, nan, nan, nan],
+    [nan, nan, 1.0, nan, nan, nan],
+    [nan, nan, nan, 1.0, nan, nan],
+    [nan, nan, nan, nan, 1.0, nan],
+    [nan, nan, nan, nan, nan, 1.0]
 ])
 
 
@@ -80,9 +99,23 @@ def one_city_multipliers():
 ONE_CITY_ONLY_MULTIPLIERS = one_city_multipliers()
 
 
+def get_calculations(recipe_type, limitation, city_index, focus, low_confidence):
+    focus_str = 'WITH_FOCUS' if focus else 'NO_FOCUS'
+    index = f'{recipe_type}_{limitation}_{focus_str}' if recipe_type == 'CRAFTING' else f'{recipe_type}_{limitation}'
+    city_name = cities.city_at_index(city_index)
+    result = calculations[index][city_name] if limitation == 'PER_CITY' else calculations[index]
+    return result if low_confidence else filter_out_low_confidence(result)
+
+
+def filter_out_low_confidence(lst):
+    return [record for record in lst if record['amount_sold'] >= LOW_CONFIDENCE_THRESHOLD and
+            all(ingredient['amount_sold'] >= LOW_CONFIDENCE_THRESHOLD for ingredient in
+                record['ingredients_details'])]
+
+
 def check_missing_ingredients_prices(recipe, multiplier):
     return [ingredient.item_id for ingredient in recipe.ingredients
-            if np.isnan(prices.get_prices_for_item(ingredient.item_id) * multiplier).all()]
+            if np.isnan(market.get_prices_for_item(ingredient.item_id) * multiplier).all()]
 
 
 def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
@@ -110,18 +143,21 @@ def summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_deta
     final_product_price = get_price_for_item_in_city(recipe.result_item_id, destination_city_index)
     ingredients_total_cost = sum(ingredient['total_cost_with_returns'] for ingredient in ingredients_details)
     max_profit_details = {
-        'product': recipe.result_item_id,
+        'product_name': items.get_item_name(recipe.result_item_id),
+        'product_subcategory': items.get_item_subcategory(recipe.result_item_id),
+        'product_tier': items.get_item_tier(recipe.result_item_id),
         'product_quantity': recipe.result_quantity,
         'profit_without_journals': round(max_profit, 2),
         'profit_with_journals': round(final_profit, 2),
         'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
-        'profit_percentage': round(final_profit / ingredients_total_cost, 2),
+        'profit_percentage': round(final_profit / ingredients_total_cost * 100, 0),
         'journals_filled': round(journal_profit_details['journals_filled'], 2),
         'destination_city': cities.city_at_index(destination_city_index),
         'production_city': cities.city_at_index(production_city_index),
         'final_product_price': round(final_product_price, 2),
         'ingredients_details': ingredients_details,
-        'ingredients_total_cost': ingredients_total_cost
+        'ingredients_total_cost': ingredients_total_cost,
+        'amount_sold': market.get_amount_sold(recipe.result_item_id, production_city_index)
     }
     return max_profit_details
 
@@ -136,13 +172,14 @@ def summarize_ingredient_details(ingredients_costs, multiplier, production_city_
         total_cost = quantity * local_price
         total_cost_with_transport = total_cost * multiplier[import_from][production_city_index]
         ingredients_details.append({
-            'ingredient_item_id': item_id,
+            'ingredient_name': items.get_item_name(item_id),
             'local_price': round(local_price, 2),
             'total_cost': round(total_cost, 2),
             'total_cost_with_transport': round(total_cost_with_transport, 2),
             'total_cost_with_returns': round(price_with_returns, 2),
             'source_city': cities.city_at_index(import_from),
-            'quantity': quantity
+            'quantity': quantity,
+            'amount_sold': market.get_amount_sold(item_id, import_from)
         })
     return ingredients_details
 
@@ -152,7 +189,7 @@ def calculate_journal_profit(item_id):
     if journal is None:
         return {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
     crafting_fame = items.get_item_crafting_fame(item_id)
-    full_journal_price = prices.get_avg_price_for_item(journal['item_id'] + '_FULL')
+    full_journal_price = market.get_avg_price_for_item(journal['item_id'] + '_FULL')
     empty_journal_price = journal['cost']
     if np.isnan(full_journal_price) or empty_journal_price == 0:
         return {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
@@ -203,51 +240,67 @@ calculations = {}
 
 def initialize_or_update_calculations():
     global calculations
-    prices.update_prices()
-    update_crafting_calculations()
+    market.update_prices()
+    # update_crafting_calculations()
     update_transport_calculations()
-    update_upgrade_calculations()
+    # update_upgrade_calculations()
+    logging.info('all calculations loaded')
 
 
 def update_upgrade_calculations():
     global calculations
     calculations[UPGRADE_PER_CITY] = calculate_local_per_city(items.get_all_upgrade_recipes(), use_focus=False)
+    logging.debug(f'{UPGRADE_PER_CITY} loaded')
     calculations[UPGRADE_NO_TRAVEL] = calculate_profits_for_recipes(items.get_all_upgrade_recipes(),
                                                                     NO_TRAVEL_MULTIPLIER, use_focus=False)
+    logging.debug(f'{UPGRADE_NO_TRAVEL} loaded')
     calculations[UPGRADE_NO_RISK] = calculate_profits_for_recipes(items.get_all_upgrade_recipes(),
                                                                   TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
+    logging.debug(f'{UPGRADE_NO_RISK} loaded')
     calculations[UPGRADE_TRAVEL] = calculate_profits_for_recipes(items.get_all_upgrade_recipes(),
                                                                  TRAVEL_COST_MULTIPLIER, use_focus=False)
+    logging.debug(f'{UPGRADE_TRAVEL} loaded')
 
 
 def update_transport_calculations():
     global calculations
-    calculations[TRANSPORT] = calculate_profits_for_recipes(items.get_all_transport_recipes(),
-                                                            TRAVEL_COST_MULTIPLIER, use_focus=False)
+    calculations[TRANSPORT_TRAVEL] = calculate_profits_for_recipes(items.get_all_transport_recipes(),
+                                                                   TRANSPORT_TRAVEL_COST_MULTIPLIER, use_focus=False)
+    logging.debug(f'{TRANSPORT_TRAVEL} loaded')
     calculations[TRANSPORT_NO_RISK] = calculate_profits_for_recipes(items.get_all_transport_recipes(),
-                                                                    TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
+                                                                    TRANSPORT_TRAVEL_COST_NO_RISK_MULTIPLIER,
+                                                                    use_focus=False)
+    logging.debug(f'{TRANSPORT_NO_RISK} loaded')
 
 
 def update_crafting_calculations():
     global calculations
     calculations[CRAFTING_PER_CITY_NO_FOCUS] = calculate_local_per_city(items.get_all_crafting_recipes(),
                                                                         use_focus=False)
+    logging.debug(f'{CRAFTING_PER_CITY_NO_FOCUS} loaded')
     calculations[CRAFTING_PER_CITY_WITH_FOCUS] = calculate_local_per_city(items.get_all_crafting_recipes(),
                                                                           use_focus=True)
+    logging.debug(f'{CRAFTING_PER_CITY_WITH_FOCUS} loaded')
     calculations[CRAFTING_NO_TRAVEL_NO_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                               NO_TRAVEL_MULTIPLIER, use_focus=False)
+    logging.debug(f'{CRAFTING_NO_TRAVEL_NO_FOCUS} loaded')
     calculations[CRAFTING_NO_TRAVEL_WITH_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                                 NO_TRAVEL_MULTIPLIER, use_focus=True)
+    logging.debug(f'{CRAFTING_NO_TRAVEL_WITH_FOCUS} loaded')
     calculations[CRAFTING_NO_RISK_NO_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                             TRAVEL_COST_NO_RISK_MULTIPLIER,
                                                                             use_focus=False)
+    logging.debug(f'{CRAFTING_NO_RISK_NO_FOCUS} loaded')
     calculations[CRAFTING_NO_RISK_WITH_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                               TRAVEL_COST_NO_RISK_MULTIPLIER,
                                                                               use_focus=True)
+    logging.debug(f'{CRAFTING_NO_RISK_WITH_FOCUS} loaded')
     calculations[CRAFTING_TRAVEL_NO_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                            TRAVEL_COST_MULTIPLIER, use_focus=False)
+    logging.debug(f'{CRAFTING_TRAVEL_NO_FOCUS} loaded')
     calculations[CRAFTING_TRAVEL_WITH_FOCUS] = calculate_profits_for_recipes(items.get_all_crafting_recipes(),
                                                                              TRAVEL_COST_MULTIPLIER, use_focus=True)
+    logging.debug(f'{CRAFTING_TRAVEL_WITH_FOCUS} loaded')
 
 
 def calculate_local_per_city(recipes, use_focus):
@@ -256,11 +309,9 @@ def calculate_local_per_city(recipes, use_focus):
 
 
 def calculate_profits_for_recipes(recipes, multiplier, use_focus):
-    return [calculate_profit_details_for_recipe(recipe, multiplier, use_focus) for recipe in recipes]
-
-
-if __name__ == '__main__':
-    result = [calculate_profit_details_for_recipe(recipe, TRAVEL_COST_NO_RISK_MULTIPLIER, use_focus=False)
-              for recipe in tqdm.tqdm(items.get_all_recipes(), desc='calculating profit')]
-
-    print('end')
+    result = []
+    for recipe in recipes:
+        details = calculate_profit_details_for_recipe(recipe, multiplier, use_focus)
+        if 'missing_item_price' not in details:
+            result.append(details)
+    return sorted(result, key=lambda x: x['profit_percentage'], reverse=True)

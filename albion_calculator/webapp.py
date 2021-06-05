@@ -15,12 +15,17 @@ def index():
 
 @bp.route('/', methods=['POST'])
 def show_calculations():
-    form = request.form
-    return render_template('index.html')
+    recipe_type = request.form.get('recipe_type', 'CRAFTING')
+    limitation = request.form.get('limitation', 'TRAVEL')
+    city = int(request.form.get('city', '0'))
+    focus = request.form.get('focus', False)
+    low_confidence = request.form.get('low_confidence', False)
+    calculations = calculator.get_calculations(recipe_type, limitation, city, focus, low_confidence)
+    return render_template('index.html', calculations=calculations)
 
 
 def init():
-    # calculator.initialize_or_update_calculations()
+    calculator.initialize_or_update_calculations()
     # start_background_calculator_job()
     pass
 
@@ -29,7 +34,3 @@ def start_background_calculator_job():
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour='6,18')
     scheduler.start()
-
-
-if __name__ == '__main__':
-    init()

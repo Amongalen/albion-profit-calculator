@@ -1,6 +1,7 @@
 <!doctype html>
 <head>
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="{{ url_for('static', filename='sorttable.js') }}"></script>
     <title> Albion Profit Calculator</title>
 </head>
 <body onload="document.criteria.reset();">
@@ -11,18 +12,16 @@
         <h1>Albion Profit Calculator</h1>
     </header>
     <form method="post" name="criteria">
-        <label for="type">Type</label>
-        <select name="type" id="type" onchange="handle_type_change(this.value)">
-            <option value="transport" selected>Transport</option>
-            <option value="crafting">Crafting</option>
-            <option value="upgrade">Upgrade</option>
+        <label for="recipe_type">Type</label>
+        <select name="recipe_type" id="recipe_type" onchange="handle_type_change(this.value)">
+            <option value="TRANSPORT" selected>Transport</option>
+            <option value="CRAFTING">Crafting</option>
+            <option value="UPGRADE">Upgrade</option>
         </select>
         <label for="limitation">Limitation</label>
         <select name="limitation" id="limitation" onchange="handle_limitation_change(this.value)">
-            <option value="none" selected>None</option>
-            <option value="no risk">No risk</option>
-            {#                <option value="no transport">No transporting</option>#}
-            {#                <option value="per city">In specific city</option>#}
+            <option value="TRAVEL" selected>None</option>
+            <option value="NO_RISK">No risk</option>
         </select>
         <label for="city">City</label>
         <select name="city" id="city" disabled>
@@ -36,6 +35,8 @@
 
         <label for="focus">Use focus</label>
         <input disabled id="focus" name="focus" type="checkbox" value="focus">
+        <label for="low confidence">Low confidence</label>
+        <input id="low confidence" name="low confidence" type="checkbox" value="low confidence">
         <input type="submit" value="Show">
     </form>
     {% block content %}{% endblock %}
@@ -43,14 +44,14 @@
 <script type="text/javascript">
     function handle_type_change(value) {
         const all_options = {
-            'none': 'None',
-            'no risk': 'No risk',
-            'no transport': 'No transporting',
-            'per city': 'In specific city',
+            'TRAVEL': 'None',
+            'NO_RISK': 'No risk',
+            'NO_TRAVEL': 'No traveling',
+            'PER_CITY': 'In specific city',
         }
         const transport_options = {
-            'none': 'None',
-            'no risk': 'No risk',
+            'TRAVEL': 'None',
+            'NO_RISK': 'No risk',
         }
         let select = document.getElementById('limitation')
 
@@ -58,7 +59,7 @@
             select.removeChild(select.firstChild);
         }
         let options;
-        options = value === 'transport' ? transport_options : all_options;
+        options = value === 'TRANSPORT' ? transport_options : all_options;
         for (const option_value in options) {
             if (options.hasOwnProperty(option_value)) {
                 let option = document.createElement("option");
@@ -68,11 +69,11 @@
             }
         }
 
-        document.getElementById('focus').disabled = value !== 'crafting';
+        document.getElementById('focus').disabled = value !== 'CRAFTING';
     }
 
     function handle_limitation_change(value) {
-        document.getElementById('city').disabled = value !== 'per city';
+        document.getElementById('city').disabled = value !== 'PER_CITY';
     }
 </script>
 </body>

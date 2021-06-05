@@ -56,6 +56,10 @@ def get_item_subcategory(item_id):
     return _items_data[item_id].subcategory
 
 
+def get_item_tier(item_id):
+    return item_id[:2]
+
+
 def get_all_recipes():
     return _recipes
 

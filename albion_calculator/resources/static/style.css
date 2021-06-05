@@ -1,0 +1,33 @@
+table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sorttable_nosort):after {
+    content: " \25B4\25BE"
+}
+
+table.sortable thead {
+    background-color: #eee;
+    color: #666666;
+    font-weight: bold;
+    cursor: default;
+}
+
+table.sortable tbody tr:nth-child(2n) td {
+    background: #c0e5fd;
+}
+
+table.sortable tbody tr:nth-child(2n+1) td {
+    background: #ffffff;
+}
+
+table.sortable tbody {
+    counter-reset: sortabletablescope;
+}
+
+table.sortable thead tr::before {
+    content: "";
+    display: table-cell;
+}
+
+table.sortable tbody tr::before {
+    content: counter(sortabletablescope);
+    counter-increment: sortabletablescope;
+    display: table-cell;
+}

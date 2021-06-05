@@ -1,2 +1,25 @@
 {% extends 'base.html' %}
 
+{% block content %}
+    {% if calculations %}
+        <table class="sortable" id="results_table">
+            <caption>Results</caption>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col" class="sorttable_nosort">Tier</th>
+                <th scope="col" class="sorttable_nosort">Subcategory</th>
+                <th scope="col">Profit</th>
+                <th scope="col">Profit percentage</th>
+            </tr>
+            {% for record in calculations %}
+                <tr>
+                    <td>{{ record['product_name'] }}</td>
+                    <td>{{ record['product_tier'] }}</td>
+                    <td>{{ record['product_subcategory'] }}</td>
+                    <td>{{ record['profit_with_journals'] }}</td>
+                    <td>{{ record['profit_percentage'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}
