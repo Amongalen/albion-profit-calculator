@@ -1,5 +1,6 @@
 import functools
 import json
+import logging
 import pathlib
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -186,7 +187,7 @@ def parse_timestamp(timestamp_str):
 def get_json_from_url(url):
     response = requests.get(url, params=REQUEST_PARAMS)
     if not response.ok:
-        print(f'{response.status_code} {response.text}')
+        logging.error(f'{response.status_code} {response.text}')
     return response.json() if response.ok else None
 
 
