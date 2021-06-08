@@ -25,7 +25,7 @@ REQUEST_PARAMS = {'locations': ','.join(cities_names()),
 
 CHUNK_SIZE = 50
 
-DEVIATION_THRESHOLD = 2
+DEVIATION_THRESHOLD = 4
 
 items_prices = {}
 
@@ -231,8 +231,26 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
+def correct_erroneous_prices(estimated_prices):
+    corrected_prices = {}
+    for item_id, prices_for_item in estimated_prices.items():
+        sorted_prices = sorted(prices_for_item)
+        q1, q3 = np.nanpercentile(sorted_prices, [25, 75])
+        iqr = q3 - q1 + 500  # magic number that seems to be working
+        lower_bound = q1 - (2 * iqr)
+        upper_bound = q3 + (2 * iqr)
+        outliers = [lower_bound > price or price > upper_bound for price in prices_for_item]
+        corrected_prices_for_item = []
+        for price in prices_for_item:
+            corrected_price = price if lower_bound <= price <= upper_bound else nan
+            corrected_prices_for_item.append(corrected_price)
+        corrected_prices[item_id] = corrected_prices_for_item
+    return corrected_prices
+
+
 def update_prices():
     global items_prices, estimated_real_prices
     items_ids = items.get_all_items_ids()
     items_prices = load_all_prices(items_ids)
-    estimated_real_prices = {item_id: estimate_real_prices_for_item(item_id) for item_id in items_ids}
+    estimated_prices = {item_id: estimate_real_prices_for_item(item_id) for item_id in items_ids}
+    estimated_real_prices = correct_erroneous_prices(estimated_prices)
