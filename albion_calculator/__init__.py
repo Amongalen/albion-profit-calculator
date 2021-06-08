@@ -8,7 +8,6 @@ from albion_calculator import webapp
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
 
 
-# todo extract subcategory names from localization
 # todo handle weird, super high prices
 # todo filter results by subcategory
 # todo display details in popup
