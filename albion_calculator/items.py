@@ -86,23 +86,22 @@ def get_item_crafting_fame(item_id):
 
 def load_items():
     raw_items_data = read_items_file()
-    items_names = read_item_names_file()
     enchantment_items = pull_out_enchantments(raw_items_data)
 
     raw_items_data = raw_items_data | enchantment_items
     crafting_fame = read_crafting_fame_file()
-    items = create_items(raw_items_data, items_names, crafting_fame)
+    items = create_items(raw_items_data, crafting_fame)
     return items
 
 
-def create_items(raw_items_data, items_names, crafting_fame):
+def create_items(raw_items_data, crafting_fame):
     items = {}
     # there are some weird items without name, probably unused ones - lets remove those
-    raw_items_data = {k: v for k, v in raw_items_data.items() if k in items_names}
+    raw_items_data = {k: v for k, v in raw_items_data.items() if k in _items_names}
     for item_id, item_data in raw_items_data.items():
         if not is_item_useful(item_data):
             continue
-        name = items_names[item_id]
+        name = _items_names[item_id]
         category = item_data['@shopcategory']
         subcategory = item_data['@shopsubcategory1']
         recipes = extract_recipes(item_data)
@@ -111,11 +110,11 @@ def create_items(raw_items_data, items_names, crafting_fame):
                               recipes, crafting_fame.get(item_id, 0))
         if 'JOURNAL' in item_id:
             empty_journal_id = item_id + '_EMPTY'
-            empty_journal_name = items_names[empty_journal_id]
+            empty_journal_name = _items_names[empty_journal_id]
             items[empty_journal_id] = Item(empty_journal_id, empty_journal_name, category, subcategory, base_item_id,
                                            recipes)
             full_journal_id = item_id + '_FULL'
-            full_journal_name = items_names[full_journal_id]
+            full_journal_name = _items_names[full_journal_id]
             items[full_journal_id] = Item(full_journal_id, full_journal_name, category, subcategory, base_item_id,
                                           recipes)
     return items
@@ -227,7 +226,7 @@ def add_missing_at_symbol(name):
     return name + '@' + match.group(2)
 
 
-def read_item_names_file():
+def load_item_names():
     items_names = {}
     with open(ITEM_NAMES_TXT_FILE) as f:
         for line in f:
@@ -249,6 +248,7 @@ def get_items_ids_for_category_or_subcategory(*args):
             or item.category in args]
 
 
+_items_names = load_item_names()
 _items_data = load_items()
 _recipes = load_recipes()
 _crafting_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.CRAFTING_RECIPE]
