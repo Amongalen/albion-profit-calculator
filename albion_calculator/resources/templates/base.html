@@ -23,6 +23,12 @@
             <option value="TRAVEL" selected>None</option>
             <option value="NO_RISK">No risk</option>
         </select>
+        <label for="category">Shop category</label>
+        <select name="category" id="category">
+            {% for category_id, category_name in categories.items() %}
+                <option value={{category_id}}>{{category_name}}</option>
+            {% endfor %}
+        </select>
         <label for="city">City</label>
         <select name="city" id="city" disabled>
             <option value="0" selected>Fort Sterling</option>
@@ -69,6 +75,7 @@
             }
         }
 
+        document.getElementById('category').disabled = value !== 'CRAFTING';
         document.getElementById('focus').disabled = value !== 'CRAFTING';
     }
 

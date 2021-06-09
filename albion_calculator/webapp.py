@@ -3,9 +3,16 @@ import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, render_template, request
 
-from albion_calculator import calculator
+from albion_calculator import calculator, craftingmodifiers, shop_categories
 
 bp = Blueprint('webapp', __name__)
+
+
+@bp.context_processor
+def inject_categories():
+    categories = {category: shop_categories.get_category_pretty_name(category) for category in
+                  shop_categories.get_craftable_shop_categories()}
+    return dict(categories=categories)
 
 
 @bp.route('/')
@@ -20,7 +27,8 @@ def show_calculations():
     city = int(request.form.get('city', '0'))
     focus = request.form.get('focus', False)
     low_confidence = request.form.get('low_confidence', False)
-    calculations = calculator.get_calculations(recipe_type, limitation, city, focus, low_confidence)
+    category = request.form.get('category', None)
+    calculations = calculator.get_calculations(recipe_type, limitation, city, focus, low_confidence, category)
     return render_template('index.html', calculations=calculations)
 
 

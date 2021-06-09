@@ -7,7 +7,7 @@ from math import nan
 import numpy as np
 import tqdm
 
-from albion_calculator import items, cities, journals, market, craftingmodifiers
+from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories
 
 from albion_calculator.items import Recipe
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
@@ -99,11 +99,13 @@ def one_city_multipliers():
 ONE_CITY_ONLY_MULTIPLIERS = one_city_multipliers()
 
 
-def get_calculations(recipe_type, limitation, city_index, focus, low_confidence):
+def get_calculations(recipe_type, limitation, city_index, focus, low_confidence, category):
     focus_str = 'WITH_FOCUS' if focus else 'NO_FOCUS'
     index = f'{recipe_type}_{limitation}_{focus_str}' if recipe_type == 'CRAFTING' else f'{recipe_type}_{limitation}'
     city_name = cities.city_at_index(city_index)
     result = calculations[index][city_name] if limitation == 'PER_CITY' else calculations[index]
+    if recipe_type == 'CRAFTING' and category:
+        result = [record for record in result if record['product_subcategory_id'] == category]
     return result if low_confidence else filter_out_low_confidence(result)
 
 
@@ -144,13 +146,16 @@ def summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_deta
     ingredients_total_cost = sum(ingredient['total_cost_with_returns'] for ingredient in ingredients_details)
     max_profit_details = {
         'product_name': items.get_item_name(recipe.result_item_id),
-        'product_subcategory': items.get_item_subcategory(recipe.result_item_id),
+        'product_id': recipe.result_item_id,
+        'product_subcategory': shop_categories.get_category_pretty_name(
+            items.get_item_subcategory(recipe.result_item_id)),
+        'product_subcategory_id': items.get_item_subcategory(recipe.result_item_id),
         'product_tier': items.get_item_tier(recipe.result_item_id),
         'product_quantity': recipe.result_quantity,
         'profit_without_journals': round(max_profit, 2),
         'profit_with_journals': round(final_profit, 2),
         'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
-        'profit_percentage': round(final_profit / ingredients_total_cost * 100, 0),
+        'profit_percentage': int(round(final_profit / ingredients_total_cost * 100, 0)),
         'journals_filled': round(journal_profit_details['journals_filled'], 2),
         'destination_city': cities.city_at_index(destination_city_index),
         'production_city': cities.city_at_index(production_city_index),
@@ -241,8 +246,8 @@ calculations = {}
 def initialize_or_update_calculations():
     global calculations
     market.update_prices()
-    # update_crafting_calculations()
-    update_transport_calculations()
+    update_crafting_calculations()
+    # update_transport_calculations()
     # update_upgrade_calculations()
     logging.info('all calculations loaded')
 
