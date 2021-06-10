@@ -25,8 +25,9 @@
         </select>
         <label for="category">Shop category</label>
         <select name="category" id="category">
+            <option value='all'>All</option>
             {% for category_id, category_name in categories.items() %}
-                <option value={{category_id}}>{{category_name}}</option>
+            <option value={{category_id}}>{{category_name}}</option>
             {% endfor %}
         </select>
         <label for="city">City</label>

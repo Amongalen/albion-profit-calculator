@@ -13,14 +13,13 @@ bp = Blueprint('webapp', __name__)
 def inject_categories():
     categories = {category: shop_categories.get_category_pretty_name(category) for category in
                   shop_categories.get_craftable_shop_categories()}
-    categories['all'] = 'All'
     return dict(categories=categories)
 
 
-@bp.route('/details', methods=['POST'])
+@bp.route('/details', methods=['GET', 'POST'])
 def show_details():
-    calculation = request.form.to_dict()
-    return calculation['product_name']
+    calculation = request.json
+    return render_template('details.html', calculation=calculation)
 
 
 @bp.route('/')

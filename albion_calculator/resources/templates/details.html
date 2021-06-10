@@ -1,0 +1,5 @@
+<b>{{calculation['product_name']}}</b><br/>
+Ingredients:
+{% for ingredient in calculation['ingredients_details'] %}
+- {{ingredient.ingredient_name}}<br/>
+{% endfor %}

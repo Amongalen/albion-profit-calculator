@@ -2,8 +2,7 @@
 
 {% block content %}
 {% if calculations %}
-
-<div id="place_for_details"></div>
+<div id="place_for_details" xmlns="http://www.w3.org/1999/html"></div>
 
 <table class="sortable" id="results_table">
     <caption>Results</caption>
@@ -25,28 +24,32 @@
         <td>{{ record['profit_with_journals'] }}</td>
         <td>{{ record['profit_percentage'] }}</td>
         <td>
-            <button id="details" onclick="show_details({{record}})">Details</button>
+            <button id="details{{loop.index}}">Details</button>
+            <script type="text/javascript">
+                document.getElementById("details{{loop.index}}").onclick = function () {
+                    $.ajax({
+                        url: "/details",
+                        type: "post",
+                        contentType: 'application/json',
+                        data: '{{record|tojson}}',
+                        success: function (response) {
+                            $("#place_for_details").html(response);
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            alert(xhr.status);
+                            alert(thrownError);
+                        }
+                    });
+                }
+            </script>
         </td>
     </tr>
+
     {% endfor %}
 </table>
+
+
 {% endif %}
 
-<script type="text/javascript">
-    function show_details(calculation) {
-        $.ajax({
-            url: "/details",
-            type: "post",
-            data: calculation,
-            success: function (response) {
-                $("#place_for_details").html(response);
-            },
-            error: function (xhr) {
-                //Do Something to handle error
-            }
-        });
-    }
-
-</script>
 
 {% endblock %}
