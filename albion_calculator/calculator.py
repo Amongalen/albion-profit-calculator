@@ -12,6 +12,14 @@ from albion_calculator import items, cities, journals, market, craftingmodifiers
 from albion_calculator.items import Recipe
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
+NONE = nan
+
+ONE_TILE = 1.05
+
+TWO_TILE = ONE_TILE ** 2
+
+BASE = 1.0
+
 UPGRADE_TRAVEL = 'UPGRADE_TRAVEL'
 
 UPGRADE_NO_RISK = 'UPGRADE_NO_RISK'
@@ -44,45 +52,30 @@ LOW_CONFIDENCE_THRESHOLD = 20
 
 # MATRIX[transport_to][transport_from]
 TRAVEL_COST_MULTIPLIER = np.array([
-    [1.0, 1.1, 1.2, 1.2, 1.1, 1.1],
-    [1.1, 1.0, 1.1, 1.2, 1.2, 1.1],
-    [1.2, 1.1, 1.0, 1.1, 1.2, 1.1],
-    [1.2, 1.2, 1.1, 1.0, 1.1, 1.1],
-    [1.1, 1.2, 1.2, 1.1, 1.0, 1.1],
-    [1.1, 1.1, 1.1, 1.1, 1.1, 1.0]
+    [BASE, ONE_TILE, TWO_TILE, TWO_TILE, ONE_TILE, ONE_TILE],
+    [ONE_TILE, BASE, ONE_TILE, TWO_TILE, TWO_TILE, ONE_TILE],
+    [TWO_TILE, ONE_TILE, BASE, ONE_TILE, TWO_TILE, ONE_TILE],
+    [TWO_TILE, TWO_TILE, ONE_TILE, BASE, ONE_TILE, ONE_TILE],
+    [ONE_TILE, TWO_TILE, TWO_TILE, ONE_TILE, BASE, ONE_TILE],
+    [ONE_TILE, ONE_TILE, ONE_TILE, ONE_TILE, ONE_TILE, BASE]
 ])
+
 TRAVEL_COST_NO_RISK_MULTIPLIER = np.array([
-    [1.0, 1.1, 1.2, 1.2, 1.1, nan],
-    [1.1, 1.0, 1.1, 1.2, 1.2, nan],
-    [1.2, 1.1, 1.0, 1.1, 1.2, nan],
-    [1.2, 1.2, 1.1, 1.0, 1.1, nan],
-    [1.1, 1.2, 1.2, 1.1, 1.0, nan],
-    [nan, nan, nan, nan, nan, 1.0]
-])
-TRANSPORT_TRAVEL_COST_MULTIPLIER = np.array([
-    [nan, 1.1, 1.2, 1.2, 1.1, 1.1],
-    [1.1, nan, 1.1, 1.2, 1.2, 1.1],
-    [1.2, 1.1, nan, 1.1, 1.2, 1.1],
-    [1.2, 1.2, 1.1, nan, 1.1, 1.1],
-    [1.1, 1.2, 1.2, 1.1, nan, 1.1],
-    [1.1, 1.1, 1.1, 1.1, 1.1, nan]
-])
-TRANSPORT_TRAVEL_COST_NO_RISK_MULTIPLIER = np.array([
-    [nan, 1.1, 1.2, 1.2, 1.1, nan],
-    [1.1, nan, 1.1, 1.2, 1.2, nan],
-    [1.2, 1.1, nan, 1.1, 1.2, nan],
-    [1.2, 1.2, 1.1, nan, 1.1, nan],
-    [1.1, 1.2, 1.2, 1.1, nan, nan],
-    [nan, nan, nan, nan, nan, nan]
+    [BASE, ONE_TILE, TWO_TILE, TWO_TILE, ONE_TILE, NONE],
+    [ONE_TILE, BASE, ONE_TILE, TWO_TILE, TWO_TILE, NONE],
+    [TWO_TILE, ONE_TILE, BASE, ONE_TILE, TWO_TILE, NONE],
+    [TWO_TILE, TWO_TILE, ONE_TILE, BASE, ONE_TILE, NONE],
+    [ONE_TILE, TWO_TILE, TWO_TILE, ONE_TILE, BASE, NONE],
+    [NONE, NONE, NONE, NONE, NONE, BASE]
 ])
 
 NO_TRAVEL_MULTIPLIER = np.array([
-    [1.0, nan, nan, nan, nan, nan],
-    [nan, 1.0, nan, nan, nan, nan],
-    [nan, nan, 1.0, nan, nan, nan],
-    [nan, nan, nan, 1.0, nan, nan],
-    [nan, nan, nan, nan, 1.0, nan],
-    [nan, nan, nan, nan, nan, 1.0]
+    [BASE, NONE, NONE, NONE, NONE, NONE],
+    [NONE, BASE, NONE, NONE, NONE, NONE],
+    [NONE, NONE, BASE, NONE, NONE, NONE],
+    [NONE, NONE, NONE, BASE, NONE, NONE],
+    [NONE, NONE, NONE, NONE, BASE, NONE],
+    [NONE, NONE, NONE, NONE, NONE, BASE]
 ])
 
 
@@ -104,7 +97,7 @@ def get_calculations(recipe_type, limitation, city_index, focus, low_confidence,
     index = f'{recipe_type}_{limitation}_{focus_str}' if recipe_type == 'CRAFTING' else f'{recipe_type}_{limitation}'
     city_name = cities.city_at_index(city_index)
     result = calculations[index][city_name] if limitation == 'PER_CITY' else calculations[index]
-    if recipe_type == 'CRAFTING' and category:
+    if category and not category == 'all':
         result = [record for record in result if record['product_subcategory_id'] == category]
     return result if low_confidence else filter_out_low_confidence(result)
 
@@ -130,7 +123,7 @@ def calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
     if np.isnan(final_profit_matrix).all():
         return {'missing_item_price': recipe.result_item_id}
 
-    journal_profit_details = calculate_journal_profit(recipe.result_item_id)
+    journal_profit_details = calculate_journal_profit(recipe)
     profit_summary = summarize_profit(final_profit_matrix, ingredients_best_deals, journal_profit_details, multiplier,
                                       recipe)
     return profit_summary
@@ -155,7 +148,7 @@ def summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_deta
         'profit_without_journals': round(max_profit, 2),
         'profit_with_journals': round(final_profit, 2),
         'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
-        'profit_percentage': int(round(final_profit / ingredients_total_cost * 100, 0)),
+        'profit_percentage': round(final_profit / ingredients_total_cost * 100, 2),
         'journals_filled': round(journal_profit_details['journals_filled'], 2),
         'destination_city': cities.city_at_index(destination_city_index),
         'production_city': cities.city_at_index(production_city_index),
@@ -189,15 +182,19 @@ def summarize_ingredient_details(ingredients_costs, multiplier, production_city_
     return ingredients_details
 
 
-def calculate_journal_profit(item_id):
+def calculate_journal_profit(recipe):
+    no_journal_profit = {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
+    if not recipe.recipe_type == Recipe.CRAFTING_RECIPE:
+        return no_journal_profit
+    item_id = recipe.result_item_id
     journal = journals.get_journal_for_item(item_id)
     if journal is None:
-        return {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
+        return no_journal_profit
     crafting_fame = items.get_item_crafting_fame(item_id)
     full_journal_price = market.get_avg_price_for_item(journal['item_id'] + '_FULL')
     empty_journal_price = journal['cost']
     if np.isnan(full_journal_price) or empty_journal_price == 0:
-        return {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
+        return no_journal_profit
     profit_per_journal = full_journal_price - empty_journal_price
     journals_filled = crafting_fame / journal['max_fame']
     return {'journals_profit': profit_per_journal * journals_filled,
@@ -246,8 +243,8 @@ calculations = {}
 def initialize_or_update_calculations():
     global calculations
     market.update_prices()
-    update_crafting_calculations()
-    # update_transport_calculations()
+    # update_crafting_calculations()
+    update_transport_calculations()
     # update_upgrade_calculations()
     logging.info('all calculations loaded')
 
@@ -270,10 +267,10 @@ def update_upgrade_calculations():
 def update_transport_calculations():
     global calculations
     calculations[TRANSPORT_TRAVEL] = calculate_profits_for_recipes(items.get_all_transport_recipes(),
-                                                                   TRANSPORT_TRAVEL_COST_MULTIPLIER, use_focus=False)
+                                                                   TRAVEL_COST_MULTIPLIER, use_focus=False)
     logging.debug(f'{TRANSPORT_TRAVEL} loaded')
     calculations[TRANSPORT_NO_RISK] = calculate_profits_for_recipes(items.get_all_transport_recipes(),
-                                                                    TRANSPORT_TRAVEL_COST_NO_RISK_MULTIPLIER,
+                                                                    TRAVEL_COST_NO_RISK_MULTIPLIER,
                                                                     use_focus=False)
     logging.debug(f'{TRANSPORT_NO_RISK} loaded')
 

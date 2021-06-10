@@ -2,6 +2,9 @@
 
 {% block content %}
 {% if calculations %}
+
+<div id="place_for_details"></div>
+
 <table class="sortable" id="results_table">
     <caption>Results</caption>
     <tr>
@@ -10,6 +13,7 @@
         <th scope="col" class="sorttable_nosort">Subcategory</th>
         <th scope="col">Profit</th>
         <th scope="col">Profit %</th>
+        <th scope="col" class="sorttable_nosort"></th>
     </tr>
     {% for record in calculations %}
     <tr>
@@ -20,8 +24,29 @@
         <td>{{ record['product_subcategory'] }}</td>
         <td>{{ record['profit_with_journals'] }}</td>
         <td>{{ record['profit_percentage'] }}</td>
+        <td>
+            <button id="details" onclick="show_details({{record}})">Details</button>
+        </td>
     </tr>
     {% endfor %}
 </table>
 {% endif %}
+
+<script type="text/javascript">
+    function show_details(calculation) {
+        $.ajax({
+            url: "/details",
+            type: "post",
+            data: calculation,
+            success: function (response) {
+                $("#place_for_details").html(response);
+            },
+            error: function (xhr) {
+                //Do Something to handle error
+            }
+        });
+    }
+
+</script>
+
 {% endblock %}

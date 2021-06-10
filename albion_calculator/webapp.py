@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, render_template, request
@@ -12,7 +13,14 @@ bp = Blueprint('webapp', __name__)
 def inject_categories():
     categories = {category: shop_categories.get_category_pretty_name(category) for category in
                   shop_categories.get_craftable_shop_categories()}
+    categories['all'] = 'All'
     return dict(categories=categories)
+
+
+@bp.route('/details', methods=['POST'])
+def show_details():
+    calculation = request.form.to_dict()
+    return calculation['product_name']
 
 
 @bp.route('/')
