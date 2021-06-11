@@ -1,3 +1,22 @@
+table {
+    border-collapse: collapse;
+}
+
+td, th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+table.ingredients_table  tr {
+    display: block;
+    float: left;
+}
+
+table.ingredients_table  th, table.ingredients_table  td {
+    display: block;
+    border: 1px solid black;
+}
+
 table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sorttable_nosort):after {
     content: " \25B4\25BE"
 }
@@ -9,10 +28,32 @@ table.sortable thead {
     cursor: default;
 }
 
+body {
+    background: #ffffff;
+}
+
 table.sortable tbody tr:nth-child(2n) td {
-    background: #c0e5fd;
+    background: #f2f2f2;
 }
 
 table.sortable tbody tr:nth-child(2n+1) td {
+    background: #d7faf7;
+}
+
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    background: #ffffff;
+}
+
+.sticky {
+    position: -webkit-sticky;
+    position: sticky;
+
+    background: #ffffff;
+}
+
+.content {
     background: #ffffff;
 }

@@ -139,6 +139,7 @@ def summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_deta
         'product_subcategory_id': items.get_item_subcategory(recipe.result_item_id),
         'product_tier': items.get_item_tier(recipe.result_item_id),
         'product_quantity': recipe.result_quantity,
+        'recipe_type': recipe.recipe_type,
         'profit_without_journals': round(max_profit, 2),
         'profit_with_journals': round(final_profit, 2),
         'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
@@ -165,6 +166,7 @@ def summarize_ingredient_details(ingredients_costs, multiplier, production_city_
         total_cost_with_transport = total_cost * multiplier[import_from][production_city_index]
         ingredients_details.append({
             'ingredient_name': items.get_item_name(item_id),
+            'ingredient_id': item_id,
             'local_price': round(local_price, 2),
             'total_cost': round(total_cost, 2),
             'total_cost_with_transport': round(total_cost_with_transport, 2),
@@ -237,8 +239,8 @@ calculations = {}
 def initialize_or_update_calculations():
     global calculations
     market.update_prices()
-    # update_crafting_calculations()
-    update_transport_calculations()
+    update_crafting_calculations()
+    # update_transport_calculations()
     # update_upgrade_calculations()
     logging.info('all calculations loaded')
 

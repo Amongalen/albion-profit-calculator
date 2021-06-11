@@ -21,7 +21,9 @@ API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.js
 
 REQUEST_PARAMS = {'locations': ','.join(cities_names()),
                   'time-scale': 6,
-                  'qualities': '1,2,3,4'}
+                  'qualities': '1,2,3,4',
+                  'date': '2-5-2020',
+                  'end-date': '2-12-2020'}
 
 CHUNK_SIZE = 50
 
@@ -170,8 +172,8 @@ def summarize_history_price(history_price):
 
     data_24h = [record for record in data if parse_timestamp(record['timestamp']) > day_before]
     price_sum_24h = sum(record['avg_price'] * record['item_count'] for record in data_24h)
-    items_sold_24h = sum(record['item_count'] for record in data_24h)
-    avg_price_24h = round(price_sum_24h / items_sold_24h, 3)
+    items_sold_count_24h = sum(record['item_count'] for record in data_24h)
+    avg_price_24h = round(price_sum_24h / items_sold_count_24h, 3) if items_sold_count_24h > 0 else 0
 
     items_sold = sum(record['item_count'] for record in data)
     return {'item_id': history_price['item_id'],

@@ -6,7 +6,8 @@ CRAFTING_TYPES = ['WARRIOR', 'HUNTER', 'MAGE', 'TOOLMAKER']
 
 
 def get_journal_for_item(item_id):
-    return _journals_grouped_by_valid_item.get(item_id, None)
+    stripped_item_id = item_id.split('@')[0]
+    return _journals_grouped_by_valid_item.get(stripped_item_id, None)
 
 
 def load_journals():
