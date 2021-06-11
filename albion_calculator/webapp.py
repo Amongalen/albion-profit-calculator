@@ -33,9 +33,8 @@ def show_calculations():
     limitation = request.form.get('limitation', 'TRAVEL')
     city = int(request.form.get('city', '0'))
     focus = request.form.get('focus', False)
-    low_confidence = request.form.get('low_confidence', False)
     category = request.form.get('category', None)
-    calculations = calculator.get_calculations(recipe_type, limitation, city, focus, low_confidence, category)
+    calculations = calculator.get_calculations(recipe_type, limitation, city, focus, category)
     return render_template('index.html', calculations=calculations)
 
 

@@ -12,6 +12,8 @@ from albion_calculator import items, cities, journals, market, craftingmodifiers
 from albion_calculator.items import Recipe
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
+PROFIT_LIMIT = 150
+
 NONE = nan
 
 ONE_TILE = 1.05
@@ -47,8 +49,6 @@ CRAFTING_PER_CITY_WITH_FOCUS = 'CRAFTING_PER_CITY_WITH_FOCUS'
 CRAFTING_PER_CITY_NO_FOCUS = 'CRAFTING_PER_CITY_NO_FOCUS'
 
 CRAFTING_NO_TRAVEL_NO_FOCUS = 'CRAFTING_NO_TRAVEL_NO_FOCUS'
-
-LOW_CONFIDENCE_THRESHOLD = 20
 
 # MATRIX[transport_to][transport_from]
 TRAVEL_COST_MULTIPLIER = np.array([
@@ -92,20 +92,14 @@ def one_city_multipliers():
 ONE_CITY_ONLY_MULTIPLIERS = one_city_multipliers()
 
 
-def get_calculations(recipe_type, limitation, city_index, focus, low_confidence, category):
+def get_calculations(recipe_type, limitation, city_index, focus, category):
     focus_str = 'WITH_FOCUS' if focus else 'NO_FOCUS'
     index = f'{recipe_type}_{limitation}_{focus_str}' if recipe_type == 'CRAFTING' else f'{recipe_type}_{limitation}'
     city_name = cities.city_at_index(city_index)
     result = calculations[index][city_name] if limitation == 'PER_CITY' else calculations[index]
     if category and not category == 'all':
         result = [record for record in result if record['product_subcategory_id'] == category]
-    return result if low_confidence else filter_out_low_confidence(result)
-
-
-def filter_out_low_confidence(lst):
-    return [record for record in lst if record['amount_sold'] >= LOW_CONFIDENCE_THRESHOLD and
-            all(ingredient['amount_sold'] >= LOW_CONFIDENCE_THRESHOLD for ingredient in
-                record['ingredients_details'])]
+    return result
 
 
 def check_missing_ingredients_prices(recipe, multiplier):
@@ -314,6 +308,6 @@ def calculate_profits_for_recipes(recipes, multiplier, use_focus):
     result = []
     for recipe in recipes:
         details = calculate_profit_details_for_recipe(recipe, multiplier, use_focus)
-        if 'missing_item_price' not in details:
+        if 'missing_item_price' not in details and details['profit_percentage'] < PROFIT_LIMIT:
             result.append(details)
     return sorted(result, key=lambda x: x['profit_percentage'], reverse=True)
