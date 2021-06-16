@@ -1,14 +1,11 @@
-import datetime
 import logging
-import time
-from datetime import timedelta
+from dataclasses import dataclass
 from math import nan
+from typing import List
 
 import numpy as np
-import tqdm
 
 from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config
-
 from albion_calculator.items import Recipe
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
@@ -59,12 +56,45 @@ _MULTIPLIERS = {
 }
 
 
+@dataclass
+class IngredientDetails:
+    name: str
+    item_id: str
+    quantity: int
+    local_price: float
+    total_cost: float
+    total_cost_with_transport: float
+    total_cost_with_returns: float
+    source_city: str
+
+
+@dataclass
+class ProfitDetails:
+    product_id: str
+    product_name: str
+    product_subcategory: str
+    product_subcategory_id: str
+    product_tier: str
+    product_quantity: int
+    recipe_type: str
+    final_product_price: float
+    ingredients_total_cost: float
+    profit_without_journals: float
+    profit_per_journal: float
+    journals_filled: float
+    profit_with_journals: float
+    profit_percentage: float
+    destination_city: str
+    production_city: str
+    ingredients_details: List[IngredientDetails]
+
+
 def get_calculations(recipe_type, limitation, city_index, use_focus, category):
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
     result = calculations[key][city_name] if limitation == 'PER_CITY' else calculations[key]
     if category and not category == 'all':
-        result = [record for record in result if record['product_subcategory_id'] == category]
+        result = [record for record in result if record.product_subcategory_id == category]
     return result
 
 
@@ -90,37 +120,37 @@ def _check_missing_ingredients_prices(recipe, multiplier):
 
 
 def _summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_details, multiplier, recipe):
-    max_profit = np.nanmax(final_profit_matrix)
+    max_profit = float(np.nanmax(final_profit_matrix))
     final_profit = max_profit + journal_profit_details['journals_profit']
     destination_city_index, production_city_index = np.unravel_index(np.nanargmax(final_profit_matrix),
                                                                      final_profit_matrix.shape)
     ingredients_details = _summarize_ingredient_details(ingredients_costs, multiplier, production_city_index, recipe)
     final_product_price = get_price_for_item_in_city(recipe.result_item_id, destination_city_index)
-    ingredients_total_cost = sum(ingredient['total_cost_with_returns'] for ingredient in ingredients_details)
-    max_profit_details = {
-        'product_name': items.get_item_name(recipe.result_item_id),
-        'product_id': recipe.result_item_id,
-        'product_subcategory': shop_categories.get_category_pretty_name(
-            items.get_item_subcategory(recipe.result_item_id)),
-        'product_subcategory_id': items.get_item_subcategory(recipe.result_item_id),
-        'product_tier': items.get_item_tier(recipe.result_item_id),
-        'product_quantity': recipe.result_quantity,
-        'recipe_type': recipe.recipe_type,
-        'profit_without_journals': round(max_profit, 2),
-        'profit_with_journals': round(final_profit, 2),
-        'profit_per_journal': round(journal_profit_details['profit_per_journal'], 2),
-        'profit_percentage': round(final_profit / ingredients_total_cost * 100, 2),
-        'journals_filled': round(journal_profit_details['journals_filled'], 2),
-        'destination_city': cities.city_at_index(destination_city_index),
-        'production_city': cities.city_at_index(production_city_index),
-        'final_product_price': round(final_product_price, 2),
-        'ingredients_details': ingredients_details,
-        'ingredients_total_cost': ingredients_total_cost
-    }
-    return max_profit_details
+    ingredients_total_cost = sum(ingredient.total_cost_with_returns for ingredient in ingredients_details)
+
+    return ProfitDetails(
+        product_id=recipe.result_item_id,
+        product_name=items.get_item_name(recipe.result_item_id),
+        product_subcategory=shop_categories.get_category_pretty_name(items.get_item_subcategory(recipe.result_item_id)),
+        product_subcategory_id=items.get_item_subcategory(recipe.result_item_id),
+        product_tier=items.get_item_tier(recipe.result_item_id),
+        product_quantity=recipe.result_quantity,
+        recipe_type=recipe.recipe_type,
+        final_product_price=round(final_product_price, 2),
+        ingredients_total_cost=ingredients_total_cost,
+        profit_without_journals=round(max_profit, 2),
+        profit_per_journal=round(journal_profit_details['profit_per_journal'], 2),
+        journals_filled=round(journal_profit_details['journals_filled'], 2),
+        profit_with_journals=round(final_profit, 2),
+        profit_percentage=round(final_profit / ingredients_total_cost * 100, 2),
+        destination_city=cities.city_at_index(destination_city_index),
+        production_city=cities.city_at_index(production_city_index),
+        ingredients_details=ingredients_details
+    )
 
 
-def _summarize_ingredient_details(ingredients_costs, multiplier, production_city_index, recipe):
+def _summarize_ingredient_details(ingredients_costs, multiplier,
+                                  production_city_index, recipe) -> List[IngredientDetails]:
     ingredients_details = []
     for ingredient in recipe.ingredients:
         item_id = ingredient.item_id
@@ -129,16 +159,16 @@ def _summarize_ingredient_details(ingredients_costs, multiplier, production_city
         local_price = get_price_for_item_in_city(item_id, import_from)
         total_cost = quantity * local_price
         total_cost_with_transport = total_cost * multiplier[import_from][production_city_index]
-        ingredients_details.append({
-            'ingredient_name': items.get_item_name(item_id),
-            'ingredient_id': item_id,
-            'local_price': round(local_price, 2),
-            'total_cost': round(total_cost, 2),
-            'total_cost_with_transport': round(total_cost_with_transport, 2),
-            'total_cost_with_returns': round(price_with_returns, 2),
-            'source_city': cities.city_at_index(import_from),
-            'quantity': quantity
-        })
+        ingredients_details.append(IngredientDetails(
+            name=items.get_item_name(item_id),
+            item_id=item_id,
+            local_price=round(local_price, 2),
+            total_cost=round(total_cost, 2),
+            total_cost_with_transport=round(total_cost_with_transport, 2),
+            total_cost_with_returns=round(price_with_returns, 2),
+            source_city=cities.city_at_index(import_from),
+            quantity=quantity
+        ))
     return ingredients_details
 
 
@@ -184,7 +214,8 @@ def _calculate_final_profit_matrix(ingredients_costs, multiplier, recipe):
 def _calculate_ingredients_best_deals(multiplier, recipe, use_focus):
     return_rates = craftingmodifiers.get_return_rates_vector(recipe.result_item_id, use_focus)
     ingredients_price_matrices = {
-        ingredient.item_id: _calculate_single_ingredient_cost(ingredient, multiplier, recipe.recipe_type, return_rates)
+        ingredient.item_id: _calculate_single_ingredient_cost(ingredient, multiplier, recipe.recipe_type,
+                                                              return_rates)
         for ingredient in recipe.ingredients}
     ingredients_best_deals = _find_ingredients_best_deals_per_city(ingredients_price_matrices)
     return ingredients_best_deals
@@ -255,8 +286,8 @@ def _calculate_profits_per_city(recipes, use_focus):
 def _calculate_profits_for_recipes(recipes, multiplier, use_focus):
     result = [details for recipe in recipes if
               (details := _calculate_profit_details_for_recipe(recipe, multiplier, use_focus))
-              and details['profit_percentage'] < _PROFIT_LIMIT]
-    return sorted(result, key=lambda x: x['profit_percentage'], reverse=True)
+              and details.profit_percentage < _PROFIT_LIMIT]
+    return sorted(result, key=lambda x: x.profit_percentage, reverse=True)
 
 
 def _create_calculation_key(limitations, recipe_type, use_focus):

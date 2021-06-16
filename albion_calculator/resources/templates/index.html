@@ -13,13 +13,13 @@
     </tr>
     {% for record in calculations %}
     <tr>
-        <td><img src="{{ url_for('static', filename='icons/' + record['product_id'] + '.png') }}" alt="Icon"
+        <td><img src="{{ url_for('static', filename='icons/' + record.product_id + '.png') }}" alt="Icon"
                  style="vertical-align: middle" loading="lazy" width="50" height="50"> {{ record['product_name'] }}
         </td>
-        <td style="text-align:center">{{ record['product_tier'] }}</td>
-        <td>{{ record['product_subcategory'] }}</td>
-        <td>{{ record['profit_with_journals'] }}</td>
-        <td>{{ record['profit_percentage'] }}</td>
+        <td style="text-align:center">{{ record.product_tier }}</td>
+        <td>{{ record.product_subcategory }}</td>
+        <td>{{ record.profit_with_journals }}</td>
+        <td>{{ record.profit_percentage }}</td>
         <td>
             <button id="details{{loop.index}}">Details</button>
             <script type="text/javascript">

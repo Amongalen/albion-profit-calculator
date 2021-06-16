@@ -1,19 +1,19 @@
-<h4>{{calculation['product_name']}}</h4>
-{{calculation['product_tier']}} {{calculation['product_subcategory']}}<br/>
-{% if calculation['recipe_type'] in ['crafting','upgrade']  %}
-Amount of products: {{calculation['product_quantity']}}<br/>
-Produced in: {{calculation['production_city']}}<br/>
+<h4>{{calculation.product_name}}</h4>
+{{calculation.product_tier}} {{calculation.product_subcategory}}<br/>
+{% if calculation.recipe_type in ['crafting','upgrade']  %}
+Amount of products: {{calculation.product_quantity}}<br/>
+Produced in: {{calculation.production_city}}<br/>
 {% endif %}
-Sold in: {{calculation['destination_city']}}<br/>
-Sold for: {{"%.2f"|format(calculation['final_product_price'])}}<br/>
-{% if calculation['journals_filled'] != 0  %}
-Profit without journals: {{"%.2f"|format(calculation['profit_with_journals'])}}<br/>
-Journals filled: {{"%.2f"|format(calculation['journals_filled'])}}<br/>
-Profit per journal: {{"%.2f"|format(calculation['profit_per_journal'])}}<br/>
+Sold in: {{calculation.destination_city}}<br/>
+Sold for: {{"%.2f"|format(calculation.final_product_price)}}<br/>
+{% if calculation.journals_filled != 0  %}
+Profit without journals: {{"%.2f"|format(calculation.profit_with_journals)}}<br/>
+Journals filled: {{"%.2f"|format(calculation.journals_filled)}}<br/>
+Profit per journal: {{"%.2f"|format(calculation.profit_per_journal)}}<br/>
 {% endif %}
-Ingredients cost including transport: {{"%.2f"|format(calculation['ingredients_total_cost'])}}<br/>
-<strong>Total profit: {{"%.2f"|format(calculation['profit_without_journals'])}}</strong><br/>
-Profit percentage: {{"%.2f%%"|format(calculation['profit_percentage'])}}<br/>
+Ingredients cost including transport: {{"%.2f"|format(calculation.ingredients_total_cost)}}<br/>
+<strong>Total profit: {{"%.2f"|format(calculation.profit_without_journals)}}</strong><br/>
+Profit percentage: {{"%.2f%%"|format(calculation.profit_percentage)}}<br/>
 <br/>
 <strong>Ingredients' details:</strong><br/>
 <table class="ingredients_table">
@@ -24,23 +24,23 @@ Profit percentage: {{"%.2f%%"|format(calculation['profit_percentage'])}}<br/>
         <th scope="col">Quantity</th>
         <th scope="col">Local price</th>
         <th scope="col">Total with transport</th>
-        {% if calculation['recipe_type'] == 'crafting' %}
+        {% if calculation.recipe_type == 'crafting' %}
         <th scope="col">Total with returns</th>
         {% endif %}
     </tr>
 
-    {% for ingredient in calculation['ingredients_details'] %}
+    {% for ingredient in calculation.ingredients_details %}
     <tr>
         <td style="padding: 0; text-align: center"><img
-                src="{{ url_for('static', filename='icons/' + ingredient['ingredient_id'] + '.png') }}" alt="Icon"
+                src="{{ url_for('static', filename='icons/' + ingredient.item_id + '.png') }}" alt="Icon"
                 style="text-align: center" width="40" height="40"></td>
-        <td><strong>{{ingredient.ingredient_name}}</strong></td>
-        <td>{{ingredient['source_city']}}</td>
-        <td>{{ingredient['quantity']}}</td>
-        <td>{{"%.2f"|format(ingredient['local_price'])}}</td>
-        <td>{{"%.2f"|format(ingredient['total_cost_with_transport'])}}</td>
-        {% if calculation['recipe_type'] == 'crafting' %}
-        <td>{{"%.2f"|format(ingredient['total_cost_with_returns'])}}</td>
+        <td><strong>{{ingredient.name}}</strong></td>
+        <td>{{ingredient.source_city}}</td>
+        <td>{{ingredient.quantity}}</td>
+        <td>{{"%.2f"|format(ingredient.local_price)}}</td>
+        <td>{{"%.2f"|format(ingredient.total_cost_with_transport)}}</td>
+        {% if calculation.recipe_type == 'crafting' %}
+        <td>{{"%.2f"|format(ingredient.total_cost_with_returns)}}</td>
         {% endif %}
     </tr>
     {% endfor %}
