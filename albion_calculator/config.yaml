@@ -1,0 +1,28 @@
+APP:
+  CALCULATOR:
+    TRAVEL_COST_ONE_TILE: 1.05
+    PROFIT_PERCENTAGE_LIMIT: 150
+
+
+
+DATA_PROJECT:
+  API_ADDRESS: 'https://www.albion-online-data.com/api/v2/stats'
+  DOWNLOAD_CHUNK_SIZE: 50
+  PARAMS:
+    LOCATIONS:
+      - 'Fort Sterling'
+      - 'Lymhurst'
+      - 'Bridgewatch'
+      - 'Martlock'
+      - 'Thetford'
+      - 'Caerleon'
+    TIME-SCALE: 6
+    QUALITIES:
+      - 1
+      - 2
+      - 3
+      - 4
+    DATE: 2-5-2020
+    END-DATE: 2-12-2020
+
+

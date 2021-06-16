@@ -1,10 +1,7 @@
-import datetime
-import json
-
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, render_template, request
 
-from albion_calculator import calculator, craftingmodifiers, shop_categories
+from albion_calculator import calculator, shop_categories
 
 bp = Blueprint('webapp', __name__)
 
@@ -41,7 +38,6 @@ def show_calculations():
 def init():
     calculator.initialize_or_update_calculations()
     # start_background_calculator_job()
-    pass
 
 
 def start_background_calculator_job():

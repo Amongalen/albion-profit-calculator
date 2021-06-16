@@ -13,12 +13,12 @@ CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
 
 ITEM_ID_KEY = '@uniquename'
 
-FILTERED_OUT_CATEGORIES = {'luxurygoods', 'other', 'token', 'trophies', 'farmables'}
+FILTERED_OUT_CATEGORIES = {'other', 'token', 'trophies', 'farmables'}
 FILTERED_OUT_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
                               'banner', 'decoration_furniture', 'morgana_furniture', 'keeper_furniture',
                               'heretic_furniture'}
-WANTED_ITEM_TYPES = ['farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
-                     'weapon', 'mount', 'furnitureitem', 'journalitem']
+WANTED_ITEM_TYPES = {'farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
+                     'weapon', 'mount', 'furnitureitem', 'journalitem'}
 
 Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
 

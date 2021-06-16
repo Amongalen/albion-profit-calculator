@@ -10,22 +10,18 @@ import numpy as np
 import requests as requests
 import tqdm as tqdm
 
-from albion_calculator import items
+from albion_calculator import items, config
 from albion_calculator.cities import cities_names
 
 CACHE_LIFETIME = 11
 
 CACHE_FILENAME = 'cache/price.cache'
 
-API_ADDRESS = 'https://www.albion-online-data.com/api/v2/stats/{type}/{items}.json'
+API_ADDRESS = config.CONFIG['DATA_PROJECT']['API_ADDRESS'] + '/{type}/{items}.json'
 
-REQUEST_PARAMS = {'locations': ','.join(cities_names()),
-                  'time-scale': 6,
-                  'qualities': '1,2,3,4',
-                  'date': '2-5-2020',
-                  'end-date': '2-12-2020'}
+DOWNLOAD_CHUNK_SIZE = config.CONFIG['DATA_PROJECT']['DOWNLOAD_CHUNK_SIZE']
 
-CHUNK_SIZE = 50
+REQUEST_PARAMS = config.get_api_params()
 
 DEVIATION_THRESHOLD = 4
 
@@ -91,7 +87,7 @@ def local_price_cache(func):
 
 @local_price_cache
 def load_all_prices(items_ids):
-    return {k: v for chunk in chunks(items_ids, CHUNK_SIZE)
+    return {k: v for chunk in chunks(items_ids, DOWNLOAD_CHUNK_SIZE)
             for k, v in get_prices_data_for_chunk(chunk).items()}
 
 
