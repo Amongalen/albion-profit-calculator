@@ -1,9 +1,11 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import nan
+from typing import Generator, Any, Union
 
 import numpy as np
 import tqdm as tqdm
+from numpy import ndarray
 
 from albion_calculator import items, config
 from albion_calculator.cities import cities_names
@@ -19,11 +21,11 @@ _items_prices = {}
 _estimated_real_prices = {}
 
 
-def get_price_for_item_in_city(item_id, city_index):
+def get_price_for_item_in_city(item_id: str, city_index: int) -> float:
     return get_prices_for_item(item_id)[city_index]
 
 
-def get_prices_for_item(item_id):
+def get_prices_for_item(item_id: str) -> ndarray:
     prices = _estimated_real_prices.get(item_id, None)
     if prices is None:
         a = np.empty((6,))
@@ -33,11 +35,21 @@ def get_prices_for_item(item_id):
     return prices
 
 
-def _estimate_real_prices_for_item(item_id):
+def get_avg_price_for_item(item_id: str) -> Any:
+    return np.nanmean(get_prices_for_item(item_id))
+
+
+@local_price_cache
+def _load_all_prices(items_ids: list[str]) -> dict:
+    return {k: v for chunk in _chunks(items_ids, _DOWNLOAD_CHUNK_SIZE)
+            for k, v in _get_prices_data_for_chunk(chunk).items()}
+
+
+def _estimate_real_prices_for_item(item_id: str) -> ndarray:
     return np.array([_estimate_real_price(prices_in_city) for prices_in_city in _items_prices[item_id]])
 
 
-def _estimate_real_price(prices_in_city):
+def _estimate_real_price(prices_in_city: dict) -> Any:
     if not prices_in_city:
         return nan
 
@@ -54,40 +66,10 @@ def _estimate_real_price(prices_in_city):
     return avg_price_24h
 
 
-def get_avg_price_for_item(item_id):
-    return np.nanmean(get_prices_for_item(item_id))
-
-
-@local_price_cache
-def _load_all_prices(items_ids):
-    return {k: v for chunk in _chunks(items_ids, _DOWNLOAD_CHUNK_SIZE)
-            for k, v in _get_prices_data_for_chunk(chunk).items()}
-
-
-def _merge_quality_data(history_prices):
-    prices_with_merged_qualities = defaultdict(dict)
-    for item_id, prices_for_item in history_prices.items():
-        for city_name, prices_in_city in prices_for_item.items():
-            result_price_in_city = prices_in_city[0]
-            for record in prices_in_city[1:]:
-                result_price_in_city['data'].extend(record['data'])
-            prices_with_merged_qualities[item_id][city_name] = result_price_in_city
-    return prices_with_merged_qualities
-
-
-def _filter_latest_quality_data(latest_prices):
-    prices_with_filtered_qualities = defaultdict(dict)
-    for item_id, prices_for_item in latest_prices.items():
-        for city_name, prices_in_city in prices_for_item.items():
-            sorted_prices = sorted(prices_in_city, key=lambda x: x['sell_price_min_date'], reverse=True)
-            prices_with_filtered_qualities[item_id][city_name] = sorted_prices[0]
-    return prices_with_filtered_qualities
-
-
-def _get_prices_data_for_chunk(items_ids):
+def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
     history_prices, latest_prices = get_prices(items_ids)
 
-    if history_prices is None or latest_prices is None:
+    if history_prices is None and latest_prices is None:
         return {}
 
     history_prices_by_item = _group_by_attr(history_prices, 'item_id')
@@ -105,7 +87,27 @@ def _get_prices_data_for_chunk(items_ids):
     return result
 
 
-def _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item):
+def _merge_quality_data(history_prices: dict) -> dict:
+    prices_with_merged_qualities = defaultdict(dict)
+    for item_id, prices_for_item in history_prices.items():
+        for city_name, prices_in_city in prices_for_item.items():
+            result_price_in_city = prices_in_city[0]
+            for record in prices_in_city[1:]:
+                result_price_in_city['data'].extend(record['data'])
+            prices_with_merged_qualities[item_id][city_name] = result_price_in_city
+    return prices_with_merged_qualities
+
+
+def _filter_latest_quality_data(latest_prices: dict) -> dict:
+    prices_with_filtered_qualities = defaultdict(dict)
+    for item_id, prices_for_item in latest_prices.items():
+        for city_name, prices_in_city in prices_for_item.items():
+            sorted_prices = sorted(prices_in_city, key=lambda x: x['sell_price_min_date'], reverse=True)
+            prices_with_filtered_qualities[item_id][city_name] = sorted_prices[0]
+    return prices_with_filtered_qualities
+
+
+def _merge_latest_and_history_prices(history_prices_for_item: dict, latest_prices_for_item: dict) -> list[dict]:
     merged_prices_by_city = []
     for city in cities_names():
         history_price = history_prices_for_item.get(city, {})
@@ -115,7 +117,7 @@ def _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_
     return merged_prices_by_city
 
 
-def _summarize_history_price(history_price):
+def _summarize_history_price(history_price: dict) -> dict:
     if not history_price:
         return {}
     data = sorted(history_price['data'], key=lambda x: x['timestamp'], reverse=True)
@@ -134,18 +136,19 @@ def _summarize_history_price(history_price):
             'avg_price_24h': avg_price_24h}
 
 
-def _group_by_attr(elements, attr):
+def _group_by_attr(elements: list[dict[str, Any]], attr: str) -> dict[str, Any]:
     result = defaultdict(list)
     for record in elements:
-        item_id = record[attr]
-        result[item_id].append(record)
+        key = record[attr]
+        result[key].append(record)
     return result
 
 
-def _parse_timestamp(timestamp_str):
+def _parse_timestamp(timestamp_str: str) -> datetime:
     return datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
 
-def _normalize_datetime_format(record):
+
+def _normalize_datetime_format(record: dict) -> dict:
     record['sell_price_min_date'] = str(_parse_timestamp(record['sell_price_min_date']))
     record['sell_price_max_date'] = str(_parse_timestamp(record['sell_price_max_date']))
     record['buy_price_min_date'] = str(_parse_timestamp(record['buy_price_min_date']))
@@ -153,13 +156,13 @@ def _normalize_datetime_format(record):
     return record
 
 
-def _chunks(lst, n):
+def _chunks(lst: list, n: int) -> Generator:
     # Yield successive n-sized chunks from lst.
     for i in tqdm.tqdm(range(0, len(lst), n), desc='Pulling prices'):
         yield lst[i:i + n]
 
 
-def _correct_erroneous_prices(estimated_prices):
+def _correct_erroneous_prices(estimated_prices: dict) -> dict:
     corrected_prices = {}
     for item_id, prices_for_item in estimated_prices.items():
         sorted_prices = sorted(prices_for_item)
@@ -176,7 +179,7 @@ def _correct_erroneous_prices(estimated_prices):
     return corrected_prices
 
 
-def update_prices():
+def update_prices() -> None:
     global _items_prices, _estimated_real_prices
     items_ids = items.get_all_items_ids()
     _items_prices = _load_all_prices(items_ids)

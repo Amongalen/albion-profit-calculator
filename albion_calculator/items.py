@@ -3,13 +3,13 @@ import json
 import math
 import re
 from dataclasses import dataclass, field
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Optional
 
 _ITEM_NAMES_TXT_FILE = 'resources/item_names.txt'
 
 ITEMS_JSON_FILE = 'resources/items.json'
 
-_CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
+CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
 
 _ITEM_ID_KEY = '@uniquename'
 
@@ -33,7 +33,7 @@ class Recipe:
     recipe_type: str
     result_quantity: int = 1
     silver_cost: int = 0
-    ingredients: List[Ingredient] = field(default_factory=list)
+    ingredients: list[Ingredient] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -43,44 +43,44 @@ class Item:
     category: str
     subcategory: str
     base_item_id: str
-    recipes: List[Recipe] = field(default_factory=list)
+    recipes: list[Recipe] = field(default_factory=list)
     crafting_fame: int = 0
     item_value: int = 0
 
 
-def get_all_items_ids():
+def get_all_items_ids() -> list[str]:
     return list(_items_data.keys())
 
 
-def get_item_subcategory(item_id):
+def get_item_subcategory(item_id: str) -> str:
     return _items_data[item_id].subcategory
 
 
-def get_item_tier(item_id):
+def get_item_tier(item_id: str) -> str:
     return item_id[:2]
 
 
-def get_all_transport_recipes():
+def get_all_transport_recipes() -> list[Recipe]:
     return _transport_recipes
 
 
-def get_all_upgrade_recipes():
+def get_all_upgrade_recipes() -> list[Recipe]:
     return _upgrade_recipes
 
 
-def get_all_crafting_recipes():
+def get_all_crafting_recipes() -> list[Recipe]:
     return _crafting_recipes
 
 
-def get_item_name(item_id):
+def get_item_name(item_id: str) -> str:
     return _items_data[item_id].name
 
 
-def get_item_crafting_fame(item_id):
+def get_item_crafting_fame(item_id: str) -> float:
     return _items_data[item_id].crafting_fame
 
 
-def _load_items():
+def _load_items() -> dict[str, Item]:
     raw_items_data = _read_items_file()
     enchantment_items = _pull_out_enchantments(raw_items_data)
 
@@ -90,7 +90,7 @@ def _load_items():
     return items
 
 
-def _create_items(raw_items_data, crafting_fame):
+def _create_items(raw_items_data: dict, crafting_fame: dict) -> dict[str, Item]:
     items = {}
     # there are some weird items without name, probably unused ones - lets remove those
     raw_items_data = {k: v for k, v in raw_items_data.items() if k in _items_names}
@@ -116,16 +116,15 @@ def _create_items(raw_items_data, crafting_fame):
     return items
 
 
-def _extract_recipes(item):
+def _extract_recipes(item: dict) -> list[Recipe]:
     crafting_recipes = _extract_recipes_details(item, is_upgrade_recipe=False)
     upgrade_recipes = _extract_recipes_details(item, is_upgrade_recipe=True)
     item_id = _add_missing_at_symbol(item[_ITEM_ID_KEY])
-    transport_recipe = [Recipe(item_id, Recipe.TRANSPORT_RECIPE,
-                               ingredients=[Ingredient(item_id, 1, 0)])]
+    transport_recipe = [Recipe(item_id, Recipe.TRANSPORT_RECIPE, ingredients=[Ingredient(item_id, 1, 0)])]
     return crafting_recipes + upgrade_recipes + transport_recipe
 
 
-def _extract_recipes_details(item, is_upgrade_recipe):
+def _extract_recipes_details(item: dict, is_upgrade_recipe: bool) -> list[Recipe]:
     data_source = 'upgraderequirements' if is_upgrade_recipe else 'craftingrequirements'
     recipes_data = item.get(data_source, None)
     recipes_data = recipes_data if isinstance(recipes_data, list) else [recipes_data]
@@ -136,7 +135,7 @@ def _extract_recipes_details(item, is_upgrade_recipe):
     return recipes_details
 
 
-def _extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
+def _extract_single_recipe_details(recipe_data: dict, item: dict, is_upgrade_recipe: bool) -> Optional[Recipe]:
     if recipe_data is None:
         return None
     data_source = 'upgraderesource' if is_upgrade_recipe else 'craftresource'
@@ -161,7 +160,7 @@ def _extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
     return Recipe(result_item_id, recipe_type, result_quantity, silver_cost, ingredients)
 
 
-def _pull_out_enchantments(raw_items_data):
+def _pull_out_enchantments(raw_items_data: dict) -> dict:
     enchantment_items = {}
     for v in raw_items_data.values():
         enchantments = v.get('enchantments', {}).get('enchantment', None)
@@ -184,7 +183,7 @@ def _pull_out_enchantments(raw_items_data):
     return enchantment_items
 
 
-def _is_item_useful(item):
+def _is_item_useful(item: dict) -> bool:
     category = item['@shopcategory']
     subcategory = item['@shopsubcategory1']
     if category in _FILTERED_OUT_CATEGORIES and not subcategory == 'royalsigils':
@@ -196,13 +195,13 @@ def _is_item_useful(item):
     return True
 
 
-def _read_crafting_fame_file():
-    with open(_CRAFTING_FAME_JSON_FILE) as f:
+def _read_crafting_fame_file() -> dict[str, float]:
+    with open(CRAFTING_FAME_JSON_FILE) as f:
         crafting_fame = json.load(f)
     return {key: value for key, value in crafting_fame.items() if value is not None}
 
 
-def _read_items_file():
+def _read_items_file() -> dict:
     with open(ITEMS_JSON_FILE) as f:
         raw_items_data = json.load(f)
         raw_items_data = raw_items_data['items']
@@ -211,7 +210,7 @@ def _read_items_file():
     return items
 
 
-def _add_missing_at_symbol(name):
+def _add_missing_at_symbol(name: str) -> str:
     special_at1_cases = ['T5_MOUNT_COUGAR_KEEPER', 'T8_MOUNT_HORSE_UNDEAD', 'T8_MOUNT_COUGAR_KEEPER',
                          'T8_MOUNT_ARMORED_HORSE_MORGANA', 'T8_MOUNT_MAMMOTH_BATTLE']
     if name in special_at1_cases:
@@ -222,7 +221,7 @@ def _add_missing_at_symbol(name):
     return name + '@' + match.group(2)
 
 
-def _load_item_names():
+def _load_item_names() -> dict[str, str]:
     items_names = {}
     with open(_ITEM_NAMES_TXT_FILE) as f:
         for line in f:
@@ -234,11 +233,11 @@ def _load_item_names():
     return items_names
 
 
-def _load_recipes():
+def _load_recipes() -> list[Recipe]:
     return [recipe for item in _items_data.values() for recipe in item.recipes]
 
 
-def get_items_ids_for_category_or_subcategory(*args):
+def get_items_ids_for_category_or_subcategory(*args: str) -> list[str]:
     return [item_id for item_id, item in _items_data.items()
             if item.subcategory in args
             or item.category in args]

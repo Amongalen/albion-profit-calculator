@@ -1,18 +1,18 @@
-from typing import Any
+from typing import Any, Union, Hashable
 
 import yaml
 
 
-def _read_yaml(file_path):
+def get_api_params() -> dict[str, any]:
+    return {k: _to_str_if_list(v) for k, v in CONFIG['DATA_PROJECT']['PARAMS'].items()}
+
+
+def _read_yaml(file_path: str) -> Union[dict[Hashable, Any], list, None]:
     with open(file_path, "r") as f:
         return yaml.safe_load(f)
 
 
-def get_api_params():
-    return {k: _to_str_if_list(v) for k, v in CONFIG['DATA_PROJECT']['PARAMS'].items()}
-
-
-def _to_str_if_list(item: Any) -> str:
+def _to_str_if_list(item: Any) -> Any:
     return ','.join(map(str, item)) if isinstance(item, list) else item
 
 

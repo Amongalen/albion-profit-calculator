@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,13 +12,13 @@ URL = 'https://www.albiononline2d.com/en/item/id/'
 # item_ids for enchanted refined resources are wrong so no fame for those but we don't care about them anyway
 # only needed for crafting items with journals
 
-def _convert_text_to_int(amount_text):
+def _convert_text_to_int(amount_text: str) -> float:
     if 'k' in amount_text.lower():
         return float(amount_text[:-1]) * 1000
     return int(amount_text)
 
 
-def _get_fame_for_item(item_id):
+def _get_fame_for_item(item_id: str) -> Optional[int]:
     page = requests.get(URL + item_id)
     if not page:
         return None
@@ -32,12 +33,12 @@ def _get_fame_for_item(item_id):
     return int(fame_no_premium)
 
 
-def _get_crafting_fame_for_items(*args):
+def _get_crafting_fame_for_items(*args: str) -> dict[str, float]:
     return {item_id: _get_fame_for_item(item_id) for item_id in args}
 
 
-def _save_crafting_fame_to_file(content_dict):
-    with open(items._CRAFTING_FAME_JSON_FILE, 'w+') as f:
+def _save_crafting_fame_to_file(content_dict: dict) -> None:
+    with open(items.CRAFTING_FAME_JSON_FILE, 'w+') as f:
         json.dump(content_dict, f)
 
 

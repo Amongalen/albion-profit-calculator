@@ -1,18 +1,11 @@
-import bidict as bidict
+from typing import List
 
-_CITIES = bidict.bidict(
-    {0: 'Fort Sterling', 1: 'Lymhurst', 2: 'Bridgewatch', 3: 'Martlock', 4: 'Thetford', 5: 'Caerleon'})
-
-
-def index_of_city(name):
-    return _CITIES.inverse[name]
+_CITIES = ['Fort Sterling', 'Lymhurst', 'Bridgewatch', 'Martlock', 'Thetford', 'Caerleon']
 
 
-def city_at_index(index):
+def city_at_index(index: int) -> str:
     return _CITIES[index]
 
 
-def cities_names():
-    return sorted(list(_CITIES.values()), key=index_of_city)
-
-
+def cities_names() -> list[str]:
+    return _CITIES[:]

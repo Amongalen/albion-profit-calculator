@@ -1,12 +1,13 @@
 import logging
 from dataclasses import dataclass
 from math import nan
-from typing import List
+from typing import List, Dict, Union, Tuple, Optional
 
 import numpy as np
+from numpy import ndarray
 
 from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config
-from albion_calculator.items import Recipe
+from albion_calculator.items import Recipe, Ingredient
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
 _PROFIT_LIMIT = config.CONFIG['APP']['CALCULATOR']['PROFIT_PERCENTAGE_LIMIT']
@@ -16,7 +17,7 @@ _ONE_TILE = config.CONFIG['APP']['CALCULATOR']['TRAVEL_COST_ONE_TILE']
 _TWO_TILE = _ONE_TILE ** 2
 
 
-def _one_city_multipliers():
+def _one_city_multipliers() -> list[ndarray]:
     arrays = []
     for i in range(6):
         array = np.empty((6, 6))
@@ -86,10 +87,11 @@ class ProfitDetails:
     profit_percentage: float
     destination_city: str
     production_city: str
-    ingredients_details: List[IngredientDetails]
+    ingredients_details: list[IngredientDetails]
 
 
-def get_calculations(recipe_type, limitation, city_index, use_focus, category):
+def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
+                     category: str) -> list[ProfitDetails]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
     result = calculations[key][city_name] if limitation == 'PER_CITY' else calculations[key]
@@ -98,7 +100,8 @@ def get_calculations(recipe_type, limitation, city_index, use_focus, category):
     return result
 
 
-def _calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
+def _calculate_profit_details_for_recipe(recipe: Recipe, multiplier: ndarray,
+                                         use_focus: bool) -> Optional[ProfitDetails]:
     missing_ingredients = _check_missing_ingredients_prices(recipe, multiplier)
     if missing_ingredients:
         return None
@@ -109,17 +112,18 @@ def _calculate_profit_details_for_recipe(recipe, multiplier, use_focus):
         return None
 
     journal_profit_details = _calculate_journal_profit(recipe)
-    profit_summary = _summarize_profit(final_profit_matrix, ingredients_best_deals, journal_profit_details, multiplier,
+    profit_details = _summarize_profit(final_profit_matrix, ingredients_best_deals, journal_profit_details, multiplier,
                                        recipe)
-    return profit_summary
+    return profit_details
 
 
-def _check_missing_ingredients_prices(recipe, multiplier):
+def _check_missing_ingredients_prices(recipe: Recipe, multiplier: ndarray) -> list[str]:
     return [ingredient.item_id for ingredient in recipe.ingredients
             if np.isnan(market.get_prices_for_item(ingredient.item_id) * multiplier).all()]
 
 
-def _summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_details, multiplier, recipe):
+def _summarize_profit(final_profit_matrix: ndarray, ingredients_costs: list[dict[str, tuple]],
+                      journal_profit_details: dict[str, float], multiplier: ndarray, recipe: Recipe) -> ProfitDetails:
     max_profit = float(np.nanmax(final_profit_matrix))
     final_profit = max_profit + journal_profit_details['journals_profit']
     destination_city_index, production_city_index = np.unravel_index(np.nanargmax(final_profit_matrix),
@@ -149,8 +153,8 @@ def _summarize_profit(final_profit_matrix, ingredients_costs, journal_profit_det
     )
 
 
-def _summarize_ingredient_details(ingredients_costs, multiplier,
-                                  production_city_index, recipe) -> List[IngredientDetails]:
+def _summarize_ingredient_details(ingredients_costs: list[dict[str, tuple]], multiplier: ndarray,
+                                  production_city_index: int, recipe: Recipe) -> list[IngredientDetails]:
     ingredients_details = []
     for ingredient in recipe.ingredients:
         item_id = ingredient.item_id
@@ -172,7 +176,7 @@ def _summarize_ingredient_details(ingredients_costs, multiplier,
     return ingredients_details
 
 
-def _calculate_journal_profit(recipe):
+def _calculate_journal_profit(recipe: Recipe) -> dict[str, float]:
     no_journal_profit = {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
     if not recipe.recipe_type == Recipe.CRAFTING_RECIPE:
         return no_journal_profit
@@ -192,26 +196,28 @@ def _calculate_journal_profit(recipe):
             'journals_filled': journals_filled}
 
 
-def _find_ingredients_best_deals_per_city(ingredients_price_matrices):
+def _find_ingredients_best_deals_per_city(ingredients_price_matrices: dict[str, ndarray]) -> list[dict[str, tuple]]:
     return [{item_id: _find_ingredient_best_deal_for_city(city, price_matrix)
              for item_id, price_matrix in ingredients_price_matrices.items()}
             for city in range(6)]
 
 
-def _find_ingredient_best_deal_for_city(city, price_matrix):
-    if np.isnan(price_matrix[city]).all():
+def _find_ingredient_best_deal_for_city(city_index: int, price_matrix: ndarray) -> tuple:
+    if np.isnan(price_matrix[city_index]).all():
         return nan, nan
-    index = np.nanargmin(price_matrix[city])
-    return price_matrix[city][index], index
+    index = np.nanargmin(price_matrix[city_index])
+    return price_matrix[city_index][index], index
 
 
-def _calculate_final_profit_matrix(ingredients_costs, multiplier, recipe):
+def _calculate_final_profit_matrix(ingredients_costs: list[dict[str, tuple]], multiplier: ndarray,
+                                   recipe: Recipe) -> ndarray:
     ingredients_costs_total = [sum(item[0] for item in city.values()) for city in ingredients_costs]
     product_price = get_prices_for_item(recipe.result_item_id)
     return (product_price * recipe.result_quantity / multiplier).T - ingredients_costs_total
 
 
-def _calculate_ingredients_best_deals(multiplier, recipe, use_focus):
+def _calculate_ingredients_best_deals(multiplier: ndarray, recipe: Recipe,
+                                      use_focus: bool) -> list[dict[str, tuple]]:
     return_rates = craftingmodifiers.get_return_rates_vector(recipe.result_item_id, use_focus)
     ingredients_price_matrices = {
         ingredient.item_id: _calculate_single_ingredient_cost(ingredient, multiplier, recipe.recipe_type,
@@ -221,7 +227,8 @@ def _calculate_ingredients_best_deals(multiplier, recipe, use_focus):
     return ingredients_best_deals
 
 
-def _calculate_single_ingredient_cost(ingredient, multiplier, recipe_type, return_rates):
+def _calculate_single_ingredient_cost(ingredient: Ingredient, multiplier: ndarray, recipe_type: str,
+                                      return_rates: ndarray) -> ndarray:
     price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier
     if recipe_type == Recipe.CRAFTING_RECIPE and ingredient.max_return_rate != 0:
         price_matrix = price_matrix * return_rates
@@ -231,15 +238,15 @@ def _calculate_single_ingredient_cost(ingredient, multiplier, recipe_type, retur
 calculations = {}
 
 
-def initialize_or_update_calculations():
+def initialize_or_update_calculations() -> None:
     market.update_prices()
-    _update_crafting_calculations()
+    # _update_crafting_calculations()
     _update_transport_calculations()
-    _update_upgrade_calculations()
+    # _update_upgrade_calculations()
     logging.info('all calculations loaded')
 
 
-def _update_upgrade_calculations():
+def _update_upgrade_calculations() -> None:
     global calculations
     recipes = items.get_all_upgrade_recipes()
     calculations.update(_calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
@@ -248,14 +255,14 @@ def _update_upgrade_calculations():
     calculations.update(_calculate_profits('UPGRADE', 'NO_RISK', recipes, use_focus=False))
 
 
-def _update_transport_calculations():
+def _update_transport_calculations() -> None:
     global calculations
     recipes = items.get_all_transport_recipes()
     calculations.update(_calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
     calculations.update(_calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
 
 
-def _update_crafting_calculations():
+def _update_crafting_calculations() -> None:
     global calculations
     recipes = items.get_all_crafting_recipes()
     calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
@@ -268,7 +275,8 @@ def _update_crafting_calculations():
     calculations.update(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=False))
 
 
-def _calculate_profits(recipe_type, limitations, recipes, use_focus):
+def _calculate_profits(recipe_type: str, limitations: str, recipes: list[Recipe], use_focus: bool) -> \
+        Union[dict[str, list[ProfitDetails]], dict[str, dict[str, ProfitDetails]]]:
     if limitations == 'PER_CITY':
         profits = _calculate_profits_per_city(recipes, use_focus)
     else:
@@ -278,18 +286,18 @@ def _calculate_profits(recipe_type, limitations, recipes, use_focus):
     return {key: profits}
 
 
-def _calculate_profits_per_city(recipes, use_focus):
+def _calculate_profits_per_city(recipes: list[Recipe], use_focus: bool) -> dict[str, list[ProfitDetails]]:
     return {city_name: _calculate_profits_for_recipes(recipes, multiplier, use_focus)
             for city_name, multiplier in zip(cities.cities_names(), _MULTIPLIERS['PER_CITY'])}
 
 
-def _calculate_profits_for_recipes(recipes, multiplier, use_focus):
+def _calculate_profits_for_recipes(recipes: list[Recipe], multiplier: ndarray, use_focus: bool) -> list[ProfitDetails]:
     result = [details for recipe in recipes if
               (details := _calculate_profit_details_for_recipe(recipe, multiplier, use_focus))
               and details.profit_percentage < _PROFIT_LIMIT]
     return sorted(result, key=lambda x: x.profit_percentage, reverse=True)
 
 
-def _create_calculation_key(limitations, recipe_type, use_focus):
+def _create_calculation_key(limitations: str, recipe_type: str, use_focus: bool) -> str:
     use_focus_str = 'WITH_FOCUS' if use_focus else 'NO_FOCUS'
     return f'{recipe_type}_{limitations}_{use_focus_str}'
