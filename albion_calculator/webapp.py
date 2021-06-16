@@ -40,7 +40,7 @@ def init():
     # start_background_calculator_job()
 
 
-def start_background_calculator_job():
+def _start_background_calculator_job():
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour='6,18')
     scheduler.start()

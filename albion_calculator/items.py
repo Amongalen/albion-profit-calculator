@@ -5,20 +5,20 @@ import re
 from dataclasses import dataclass, field
 from typing import List, NamedTuple
 
-ITEM_NAMES_TXT_FILE = 'resources/item_names.txt'
+_ITEM_NAMES_TXT_FILE = 'resources/item_names.txt'
 
 ITEMS_JSON_FILE = 'resources/items.json'
 
-CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
+_CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
 
-ITEM_ID_KEY = '@uniquename'
+_ITEM_ID_KEY = '@uniquename'
 
-FILTERED_OUT_CATEGORIES = {'other', 'token', 'trophies', 'farmables'}
-FILTERED_OUT_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
-                              'banner', 'decoration_furniture', 'morgana_furniture', 'keeper_furniture',
-                              'heretic_furniture'}
-WANTED_ITEM_TYPES = {'farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
-                     'weapon', 'mount', 'furnitureitem', 'journalitem'}
+_FILTERED_OUT_CATEGORIES = {'other', 'token', 'trophies', 'farmables'}
+_FILTERED_OUT_SUBCATEGORIES = {'unique', 'vanity', 'unique_shoes', 'unique_helmet', 'unique_armor', 'repairkit', 'flag',
+                               'banner', 'decoration_furniture', 'morgana_furniture', 'keeper_furniture',
+                               'heretic_furniture'}
+_WANTED_ITEM_TYPES = {'farmableitem', 'simpleitem', 'consumableitem', 'equipmentitem',
+                      'weapon', 'mount', 'furnitureitem', 'journalitem'}
 
 Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
 
@@ -60,10 +60,6 @@ def get_item_tier(item_id):
     return item_id[:2]
 
 
-def get_all_recipes():
-    return _recipes
-
-
 def get_all_transport_recipes():
     return _transport_recipes
 
@@ -84,27 +80,27 @@ def get_item_crafting_fame(item_id):
     return _items_data[item_id].crafting_fame
 
 
-def load_items():
-    raw_items_data = read_items_file()
-    enchantment_items = pull_out_enchantments(raw_items_data)
+def _load_items():
+    raw_items_data = _read_items_file()
+    enchantment_items = _pull_out_enchantments(raw_items_data)
 
     raw_items_data = raw_items_data | enchantment_items
-    crafting_fame = read_crafting_fame_file()
-    items = create_items(raw_items_data, crafting_fame)
+    crafting_fame = _read_crafting_fame_file()
+    items = _create_items(raw_items_data, crafting_fame)
     return items
 
 
-def create_items(raw_items_data, crafting_fame):
+def _create_items(raw_items_data, crafting_fame):
     items = {}
     # there are some weird items without name, probably unused ones - lets remove those
     raw_items_data = {k: v for k, v in raw_items_data.items() if k in _items_names}
     for item_id, item_data in raw_items_data.items():
-        if not is_item_useful(item_data):
+        if not _is_item_useful(item_data):
             continue
         name = _items_names[item_id]
         category = item_data['@shopcategory']
         subcategory = item_data['@shopsubcategory1']
-        recipes = extract_recipes(item_data)
+        recipes = _extract_recipes(item_data)
         base_item_id = item_data.get('base_item_id', None)
         items[item_id] = Item(item_id, name, category, subcategory, base_item_id,
                               recipes, crafting_fame.get(item_id, 0))
@@ -120,27 +116,27 @@ def create_items(raw_items_data, crafting_fame):
     return items
 
 
-def extract_recipes(item):
-    crafting_recipes = extract_recipes_details(item, is_upgrade_recipe=False)
-    upgrade_recipes = extract_recipes_details(item, is_upgrade_recipe=True)
-    item_id = add_missing_at_symbol(item[ITEM_ID_KEY])
+def _extract_recipes(item):
+    crafting_recipes = _extract_recipes_details(item, is_upgrade_recipe=False)
+    upgrade_recipes = _extract_recipes_details(item, is_upgrade_recipe=True)
+    item_id = _add_missing_at_symbol(item[_ITEM_ID_KEY])
     transport_recipe = [Recipe(item_id, Recipe.TRANSPORT_RECIPE,
                                ingredients=[Ingredient(item_id, 1, 0)])]
     return crafting_recipes + upgrade_recipes + transport_recipe
 
 
-def extract_recipes_details(item, is_upgrade_recipe):
+def _extract_recipes_details(item, is_upgrade_recipe):
     data_source = 'upgraderequirements' if is_upgrade_recipe else 'craftingrequirements'
     recipes_data = item.get(data_source, None)
     recipes_data = recipes_data if isinstance(recipes_data, list) else [recipes_data]
     recipes_details = [recipe for recipe_data in recipes_data
-                       if (recipe := extract_single_recipe_details(recipe_data, item, is_upgrade_recipe))
+                       if (recipe := _extract_single_recipe_details(recipe_data, item, is_upgrade_recipe))
                        is not None]
 
     return recipes_details
 
 
-def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
+def _extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
     if recipe_data is None:
         return None
     data_source = 'upgraderesource' if is_upgrade_recipe else 'craftresource'
@@ -149,13 +145,13 @@ def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
         return None
 
     recipe_type = Recipe.UPGRADE_RECIPE if is_upgrade_recipe else Recipe.CRAFTING_RECIPE
-    result_item_id = add_missing_at_symbol(item[ITEM_ID_KEY])
+    result_item_id = _add_missing_at_symbol(item[_ITEM_ID_KEY])
     result_quantity = int(recipe_data.get('@amountcrafted', 1))
     silver_cost = int(recipe_data.get('@silver', 0))
 
     craft_resources = craft_resources if isinstance(craft_resources, list) else [craft_resources]
 
-    ingredients = [Ingredient(add_missing_at_symbol(x[ITEM_ID_KEY]),
+    ingredients = [Ingredient(_add_missing_at_symbol(x[_ITEM_ID_KEY]),
                               int(x['@count']), float(x.get('@maxreturnamount', math.inf)))
                    for x in craft_resources]
     if is_upgrade_recipe:
@@ -165,7 +161,7 @@ def extract_single_recipe_details(recipe_data, item, is_upgrade_recipe):
     return Recipe(result_item_id, recipe_type, result_quantity, silver_cost, ingredients)
 
 
-def pull_out_enchantments(raw_items_data):
+def _pull_out_enchantments(raw_items_data):
     enchantment_items = {}
     for v in raw_items_data.values():
         enchantments = v.get('enchantments', {}).get('enchantment', None)
@@ -180,42 +176,42 @@ def pull_out_enchantments(raw_items_data):
             new_item.pop('upgraderequirements', None)
             new_item['craftingrequirements'] = enchantment['craftingrequirements']
             new_item['upgraderequirements'] = enchantment['upgraderequirements']
-            new_id = new_item[ITEM_ID_KEY] + '@' + enchantment['@enchantmentlevel']
-            new_item[ITEM_ID_KEY] = new_id
-            new_item['base_item_id'] = v[ITEM_ID_KEY]
+            new_id = new_item[_ITEM_ID_KEY] + '@' + enchantment['@enchantmentlevel']
+            new_item[_ITEM_ID_KEY] = new_id
+            new_item['base_item_id'] = v[_ITEM_ID_KEY]
             enchantment_items[new_id] = new_item
 
     return enchantment_items
 
 
-def is_item_useful(item):
+def _is_item_useful(item):
     category = item['@shopcategory']
     subcategory = item['@shopsubcategory1']
-    if category in FILTERED_OUT_CATEGORIES and not subcategory == 'royalsigils':
+    if category in _FILTERED_OUT_CATEGORIES and not subcategory == 'royalsigils':
         return False
-    if subcategory in FILTERED_OUT_SUBCATEGORIES:
+    if subcategory in _FILTERED_OUT_SUBCATEGORIES:
         return False
-    if category == 'furniture' and item[ITEM_ID_KEY].startswith('UNIQUE'):
+    if category == 'furniture' and item[_ITEM_ID_KEY].startswith('UNIQUE'):
         return False
     return True
 
 
-def read_crafting_fame_file():
-    with open(CRAFTING_FAME_JSON_FILE) as f:
+def _read_crafting_fame_file():
+    with open(_CRAFTING_FAME_JSON_FILE) as f:
         crafting_fame = json.load(f)
     return {key: value for key, value in crafting_fame.items() if value is not None}
 
 
-def read_items_file():
+def _read_items_file():
     with open(ITEMS_JSON_FILE) as f:
         raw_items_data = json.load(f)
         raw_items_data = raw_items_data['items']
-    items = {add_missing_at_symbol(item[ITEM_ID_KEY]): item for item_type in WANTED_ITEM_TYPES for item in
+    items = {_add_missing_at_symbol(item[_ITEM_ID_KEY]): item for item_type in _WANTED_ITEM_TYPES for item in
              raw_items_data[item_type]}
     return items
 
 
-def add_missing_at_symbol(name):
+def _add_missing_at_symbol(name):
     special_at1_cases = ['T5_MOUNT_COUGAR_KEEPER', 'T8_MOUNT_HORSE_UNDEAD', 'T8_MOUNT_COUGAR_KEEPER',
                          'T8_MOUNT_ARMORED_HORSE_MORGANA', 'T8_MOUNT_MAMMOTH_BATTLE']
     if name in special_at1_cases:
@@ -226,9 +222,9 @@ def add_missing_at_symbol(name):
     return name + '@' + match.group(2)
 
 
-def load_item_names():
+def _load_item_names():
     items_names = {}
-    with open(ITEM_NAMES_TXT_FILE) as f:
+    with open(_ITEM_NAMES_TXT_FILE) as f:
         for line in f:
             parts = line.split(':')
             if len(parts) == 3:
@@ -238,7 +234,7 @@ def load_item_names():
     return items_names
 
 
-def load_recipes():
+def _load_recipes():
     return [recipe for item in _items_data.values() for recipe in item.recipes]
 
 
@@ -248,9 +244,9 @@ def get_items_ids_for_category_or_subcategory(*args):
             or item.category in args]
 
 
-_items_names = load_item_names()
-_items_data = load_items()
-_recipes = load_recipes()
+_items_names = _load_item_names()
+_items_data = _load_items()
+_recipes = _load_recipes()
 _crafting_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.CRAFTING_RECIPE]
 _upgrade_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.UPGRADE_RECIPE]
 _transport_recipes = [recipe for recipe in _recipes if recipe.recipe_type == Recipe.TRANSPORT_RECIPE]
