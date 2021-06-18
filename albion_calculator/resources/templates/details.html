@@ -18,7 +18,7 @@ Profit percentage: {{"%.2f%%"|format(calculation.profit_percentage)}}<br/>
 <strong>Ingredients' details:</strong><br/>
 <table class="ingredients_table">
     <tr>
-        <th scope="col" style="padding: 0; height: 43px"></th>
+        <th scope="col" style="padding: 0; height: 53px"></th>
         <th scope="col">Ingredient</th>
         <th scope="col">Bought in</th>
         <th scope="col">Quantity</th>
@@ -33,7 +33,7 @@ Profit percentage: {{"%.2f%%"|format(calculation.profit_percentage)}}<br/>
     <tr>
         <td style="padding: 0; text-align: center"><img
                 src="{{ url_for('static', filename='icons/' + ingredient.item_id + '.png') }}" alt="Icon"
-                style="text-align: center" width="40" height="40"></td>
+                style="text-align: center" width="50" height="50"></td>
         <td><strong>{{ingredient.name}}</strong></td>
         <td>{{ingredient.source_city}}</td>
         <td>{{ingredient.quantity}}</td>

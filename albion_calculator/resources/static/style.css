@@ -3,57 +3,59 @@ table {
 }
 
 td, th {
-    border: 1px solid #ddd;
+    border: 1px solid #000000;
     padding: 8px;
 }
 
-table.ingredients_table  tr {
+a {
+    text-decoration: none;
+}
+
+a:link, a:visited {
+    color: darkblue;
+}
+
+a:hover {
+    color: orange;
+}
+
+table.ingredients_table tr {
     display: block;
     float: left;
 }
 
-table.ingredients_table  th, table.ingredients_table  td {
+table.ingredients_table th, table.ingredients_table td {
     display: block;
     border: 1px solid black;
 }
 
-table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sorttable_nosort):after {
-    content: " \25B4\25BE"
-}
-
-table.sortable thead {
-    background-color: #eee;
-    color: #666666;
-    font-weight: bold;
-    cursor: default;
-}
 
 body {
-    background: #ffffff;
+    background: #807045;
 }
 
-table.sortable tbody tr:nth-child(2n) td {
-    background: #f2f2f2;
+table.two-colors tbody tr:nth-child(2n) td {
+    background: #796837;
 }
 
-table.sortable tbody tr:nth-child(2n+1) td {
-    background: #d7faf7;
+table.two-colors tbody tr:nth-child(2n+1) td {
+    background: #807045;
 }
 
 .flex-container {
     display: flex;
     justify-content: space-between;
     flex-direction: row;
-    background: #ffffff;
+    background: #807045;
 }
 
 .sticky {
     position: -webkit-sticky;
     position: sticky;
 
-    background: #ffffff;
+    background: #807045;
 }
 
 .content {
-    background: #ffffff;
+    background: #807045;
 }

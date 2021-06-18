@@ -1,3 +1,4 @@
+import datetime
 import logging
 from dataclasses import dataclass
 from math import nan
@@ -91,13 +92,13 @@ class ProfitDetails:
 
 
 def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
-                     category: str) -> list[ProfitDetails]:
+                     category: str) -> tuple[list[ProfitDetails], datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
     result = calculations[key][city_name] if limitation == 'PER_CITY' else calculations[key]
     if category and not category == 'all':
         result = [record for record in result if record.product_subcategory_id == category]
-    return result
+    return result, update_datetime
 
 
 def _calculate_profit_details_for_recipe(recipe: Recipe, multiplier: ndarray,
@@ -236,13 +237,16 @@ def _calculate_single_ingredient_cost(ingredient: Ingredient, multiplier: ndarra
 
 
 calculations = {}
+update_datetime = None
 
 
 def initialize_or_update_calculations() -> None:
+    global update_datetime
     market.update_prices()
-    # _update_crafting_calculations()
+    _update_crafting_calculations()
     _update_transport_calculations()
-    # _update_upgrade_calculations()
+    _update_upgrade_calculations()
+    update_datetime = datetime.datetime.now()
     logging.info('all calculations loaded')
 
 

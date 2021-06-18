@@ -43,5 +43,5 @@ def _is_cache_up_to_date() -> bool:
     return hours_passed < _CACHE_LIFETIME
 
 
-_CACHE_LIFETIME = 11
+_CACHE_LIFETIME = 6
 _CACHE_FILENAME = 'cache/price.cache'

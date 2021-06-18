@@ -9,8 +9,8 @@
 
 <section class="content">
     <div class="flex-container">
-        <div style="flex-grow: 6">
-            <div class="sticky" style="padding-bottom: 20px; top: 0;">
+        <div style="flex-grow: 6; flex-basis:60%">
+            <div class="sticky" style="padding-bottom: 20px; padding-left: 20px; top: 0;">
                 <h1>Albion Profit Calculator</h1>
                 <form method="post" name="criteria">
                     <label for="recipe_type">Type</label>
@@ -49,7 +49,7 @@
             </div>
             {% block content %}{% endblock %}
         </div>
-        <div style="flex-grow: 4">
+        <div style="flex-grow: 4; flex-basis:40%">
             <div class="sticky" id="place_for_details" style="    top: 20px;"></div>
         </div>
     </div>

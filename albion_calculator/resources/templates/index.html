@@ -1,15 +1,31 @@
 {% extends 'base.html' %}
-
 {% block content %}
 {% if calculations %}
-<table class="sortable" id="results_table">
+<div style="padding-left: 20px;">
+    All prices collected using <a href="https://www.albion-online-data.com/">The Albion Online Data Project</a><br/>
+    Last data update: {{update_time|datetime_format}}
+</div>
+<div style="text-align: center">
+    <h4>
+        {% if page-1>0 %}
+        <a href="{{url_for('webapp.index', page=1, page_size=page_size)}}">First</a>
+        <a href="{{url_for('webapp.index', page=page-1, page_size=page_size)}}">{{page-1}}</a>
+        {% endif %}
+        {{page}}
+        {% if calculations|length == page_size %}
+        <a href="{{url_for('webapp.index', page=page+1, page_size=page_size)}}">{{page+1}}</a>
+        <a href="{{url_for('webapp.index', page=9999, page_size=page_size)}}">Last</a>
+        {% endif %}
+    </h4>
+</div>
+<table class="two-colors" id="results_table" style="width:90%; margin-left: auto; margin-right: auto;">
     <tr>
         <th scope="col">Name</th>
-        <th scope="col" class="sorttable_nosort">Tier</th>
-        <th scope="col" class="sorttable_nosort">Subcategory</th>
+        <th scope="col">Tier</th>
+        <th scope="col">Subcategory</th>
         <th scope="col">Profit</th>
         <th scope="col">Profit %</th>
-        <th scope="col" class="sorttable_nosort"></th>
+        <th scope="col"></th>
     </tr>
     {% for record in calculations %}
     <tr>
@@ -44,7 +60,19 @@
 
     {% endfor %}
 </table>
-
+<div style="text-align: center">
+    <h4>
+        {% if page-1>0 %}
+        <a href="{{url_for('webapp.index', page=1, page_size=page_size)}}">First</a>
+        <a href="{{url_for('webapp.index', page=page-1, page_size=page_size)}}">{{page-1}}</a>
+        {% endif %}
+        {{page}}
+        {% if calculations|length == page_size %}
+        <a href="{{url_for('webapp.index', page=page+1, page_size=page_size)}}">{{page+1}}</a>
+        <a href="{{url_for('webapp.index', page=9999, page_size=page_size)}}">Last</a>
+        {% endif %}
+    </h4>
+</div>
 
 {% endif %}
 

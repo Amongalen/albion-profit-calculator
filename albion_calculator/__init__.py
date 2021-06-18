@@ -21,4 +21,6 @@ def create_app():
 
     app.register_blueprint(webapp.bp)
 
+    app.secret_key = 'secret'
+
     return app
