@@ -53,11 +53,13 @@ def _estimate_real_price(prices_in_city: dict) -> Any:
     if not prices_in_city:
         return nan
 
-    min_price = prices_in_city.get('sell_price_min', 0)
-    avg_price_24h = prices_in_city.get('avg_price_24h', 0)
+    min_price = prices_in_city.get('sell_price_min', nan)
+    avg_price_24h = prices_in_city.get('avg_price_24h', nan)
+    if min_price == 0:
+        min_price = nan
 
-    if avg_price_24h == 0:
-        return nan
+    if np.isnan(avg_price_24h):
+        return min_price
 
     # deviation used to remove anomalous values
     deviation = min_price / avg_price_24h
@@ -168,7 +170,7 @@ def _correct_erroneous_prices(estimated_prices: dict) -> dict:
         sorted_prices = sorted(prices_for_item)
         _, q3 = np.nanpercentile(sorted_prices, [25, 75], interpolation='lower')
         q1, _ = np.nanpercentile(sorted_prices, [25, 75], interpolation='higher')
-        iqr = q3 - q1 if not q3 == q1 else 50  # a nice magic number
+        iqr = abs(q3 - q1) if not q3 == q1 else 50  # a nice magic number
         lower_bound = q1 - (1.3 * iqr)
         upper_bound = q3 + (1.3 * iqr)
         corrected_prices_for_item = []
