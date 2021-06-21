@@ -1,7 +1,6 @@
 <!doctype html>
 <head>
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
-    <script src="{{ url_for('static', filename='sorttable.js') }}"></script>
     <title> Albion Profit Calculator</title>
 </head>
 <body onload="document.criteria.reset();">
@@ -9,7 +8,7 @@
 
 <section class="content">
     <div class="flex-container">
-        <div style="flex-grow: 6; flex-basis:60%">
+        <div style="flex: 6 0 60%">
             <div class="sticky" style="padding-bottom: 20px; padding-left: 20px; top: 0;">
                 <h1>Albion Profit Calculator</h1>
                 <form action="{{url_for('webapp.results')}}" method="post" name="criteria">
@@ -49,7 +48,7 @@
             </div>
             {% block content %}{% endblock %}
         </div>
-        <div style="flex-grow: 4; flex-basis:40%">
+        <div style="flex: 6 0 40%">
             <div class="sticky" id="place_for_details" style="    top: 20px;"></div>
         </div>
     </div>

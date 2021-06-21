@@ -13,9 +13,9 @@ from albion_calculator.market import get_prices_for_item, get_price_for_item_in_
 
 _PROFIT_LIMIT = config.CONFIG['APP']['CALCULATOR']['PROFIT_PERCENTAGE_LIMIT']
 
-_ONE_TILE = config.CONFIG['APP']['CALCULATOR']['TRAVEL_COST_ONE_TILE']
+ONE_TILE = config.CONFIG['APP']['CALCULATOR']['TRAVEL_COST_ONE_TILE']
 
-_TWO_TILE = _ONE_TILE ** 2
+TWO_TILES = ONE_TILE ** 2
 
 
 def _one_city_multipliers() -> list[ndarray]:
@@ -31,19 +31,19 @@ def _one_city_multipliers() -> list[ndarray]:
 # MATRIX[transport_to][transport_from]
 _MULTIPLIERS = {
     'TRAVEL': np.array([
-        [1.0, _ONE_TILE, _TWO_TILE, _TWO_TILE, _ONE_TILE, _ONE_TILE],
-        [_ONE_TILE, 1.0, _ONE_TILE, _TWO_TILE, _TWO_TILE, _ONE_TILE],
-        [_TWO_TILE, _ONE_TILE, 1.0, _ONE_TILE, _TWO_TILE, _ONE_TILE],
-        [_TWO_TILE, _TWO_TILE, _ONE_TILE, 1.0, _ONE_TILE, _ONE_TILE],
-        [_ONE_TILE, _TWO_TILE, _TWO_TILE, _ONE_TILE, 1.0, _ONE_TILE],
-        [_ONE_TILE, _ONE_TILE, _ONE_TILE, _ONE_TILE, _ONE_TILE, 1.0]
+        [1.0, ONE_TILE, TWO_TILES, TWO_TILES, ONE_TILE, ONE_TILE],
+        [ONE_TILE, 1.0, ONE_TILE, TWO_TILES, TWO_TILES, ONE_TILE],
+        [TWO_TILES, ONE_TILE, 1.0, ONE_TILE, TWO_TILES, ONE_TILE],
+        [TWO_TILES, TWO_TILES, ONE_TILE, 1.0, ONE_TILE, ONE_TILE],
+        [ONE_TILE, TWO_TILES, TWO_TILES, ONE_TILE, 1.0, ONE_TILE],
+        [ONE_TILE, ONE_TILE, ONE_TILE, ONE_TILE, ONE_TILE, 1.0]
     ]),
     'NO_RISK': np.array([
-        [1.0, _ONE_TILE, _TWO_TILE, _TWO_TILE, _ONE_TILE, nan],
-        [_ONE_TILE, 1.0, _ONE_TILE, _TWO_TILE, _TWO_TILE, nan],
-        [_TWO_TILE, _ONE_TILE, 1.0, _ONE_TILE, _TWO_TILE, nan],
-        [_TWO_TILE, _TWO_TILE, _ONE_TILE, 1.0, _ONE_TILE, nan],
-        [_ONE_TILE, _TWO_TILE, _TWO_TILE, _ONE_TILE, 1.0, nan],
+        [1.0, ONE_TILE, TWO_TILES, TWO_TILES, ONE_TILE, nan],
+        [ONE_TILE, 1.0, ONE_TILE, TWO_TILES, TWO_TILES, nan],
+        [TWO_TILES, ONE_TILE, 1.0, ONE_TILE, TWO_TILES, nan],
+        [TWO_TILES, TWO_TILES, ONE_TILE, 1.0, ONE_TILE, nan],
+        [ONE_TILE, TWO_TILES, TWO_TILES, ONE_TILE, 1.0, nan],
         [nan, nan, nan, nan, nan, 1.0]
     ]),
     'NO_TRAVEL': np.array([
@@ -151,6 +151,7 @@ def _summarize_profit(final_profit_matrix: ndarray, ingredients_costs: list[dict
         destination_city=cities.city_at_index(destination_city_index),
         production_city=cities.city_at_index(production_city_index),
         ingredients_details=ingredients_details
+
     )
 
 

@@ -19,13 +19,16 @@ a:hover {
     color: orange;
 }
 
-table.ingredients_table tr {
+div.ingredients_table_wrapper {
     display: block;
-    float: left;
+    overflow: auto;
+}
+
+td.num {
+    text-align: right;
 }
 
 table.ingredients_table th, table.ingredients_table td {
-    display: block;
     border: 1px solid black;
 }
 
@@ -58,4 +61,57 @@ table.two-colors tbody tr:nth-child(2n+1) td {
 
 .content {
     background: #807045;
+}
+
+.tooltip {
+    position: relative; /* making the .tooltip span a container for the tooltip text */
+    border-bottom: 1px dashed #000; /* little indicater to indicate it's hoverable */
+}
+
+.tooltip:before {
+    content: attr(data-tooltip); /* here's the magic */
+    position: absolute;
+
+    /* vertically center */
+    top: 50%;
+    transform: translateY(-50%);
+
+    right: 100%;
+    margin-right: 15px;
+
+    /* basic styles */
+    width: auto;
+    padding: 10px;
+    border-radius: 5px;
+    background: #52441f;
+    color: #fff;
+    text-align: center;
+    font-size: small;
+    font-weight: normal;
+    white-space: pre;
+
+    display: none; /* hide by default */
+}
+
+.tooltip:after {
+    content: "";
+    position: absolute;
+
+    /* position tooltip correctly */
+    right: 100%;
+    margin-right: -6px;
+
+    /* vertically center */
+    top: 50%;
+    transform: translateY(-50%);
+
+    /* the arrow */
+    border: 12px solid #52441f;
+    border-color: transparent transparent transparent #52441f;
+
+    display: none;
+}
+
+.tooltip:hover:before, .tooltip:hover:after {
+    display: block;
 }

@@ -14,6 +14,12 @@ def inject_categories() -> dict:
     return dict(categories=categories)
 
 
+@bp.context_processor
+def inject_travel_multiplier() -> dict:
+    return dict(one_tile_multiplier=calculator.ONE_TILE,
+                two_tiles_multiplier=calculator.TWO_TILES)
+
+
 @bp.route('/details', methods=['GET', 'POST'])
 def show_details() -> str:
     calculation = request.json
