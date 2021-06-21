@@ -22,7 +22,7 @@ _estimated_real_prices = {}
 
 
 def get_price_for_item_in_city(item_id: str, city_index: int) -> float:
-    return get_prices_for_item(item_id)[city_index]
+    return float(get_prices_for_item(item_id)[city_index])
 
 
 def get_prices_for_item(item_id: str) -> ndarray:
@@ -53,19 +53,22 @@ def _estimate_real_price(prices_in_city: dict) -> Any:
     if not prices_in_city:
         return nan
 
-    min_price = prices_in_city.get('sell_price_min', nan)
-    avg_price_24h = prices_in_city.get('avg_price_24h', nan)
-    if min_price == 0:
-        min_price = nan
+    min_price = prices_in_city.get('sell_price_min', 0)
+    avg_price_24h = prices_in_city.get('avg_price_24h', 0)
+    if min_price == 0 and avg_price_24h == 0:
+        return nan
 
-    if np.isnan(avg_price_24h):
+    if min_price == 0:
+        return avg_price_24h
+
+    if avg_price_24h == 0:
         return min_price
 
     # deviation used to remove anomalous values
     deviation = min_price / avg_price_24h
-    if min_price != 0 and 1 / _DEVIATION_THRESHOLD <= deviation <= _DEVIATION_THRESHOLD:
-        return min_price
-    return avg_price_24h
+    if 1 / _DEVIATION_THRESHOLD <= deviation <= _DEVIATION_THRESHOLD:
+        return avg_price_24h
+    return min_price
 
 
 def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:

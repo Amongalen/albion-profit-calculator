@@ -6,12 +6,12 @@ from albion_calculator.items import ITEMS_JSON_FILE
 _CRAFTING_TYPES = ['WARRIOR', 'HUNTER', 'MAGE', 'TOOLMAKER']
 
 
-def get_journal_for_item(item_id: str) -> Optional[str]:
+def get_journal_for_item(item_id: str) -> Optional[dict]:
     stripped_item_id = item_id.split('@')[0]
     return _journals_grouped_by_valid_item.get(stripped_item_id, None)
 
 
-def _load_journals() -> dict[str, str]:
+def _load_journals() -> dict[str, dict]:
     raw_journals_data = _read_journals_from_items_file()
     raw_crafting_journals_data = _filter_crafting_journals(raw_journals_data)
     journals = dict(_create_journal(journal_json) for journal_json in raw_crafting_journals_data)
@@ -39,7 +39,7 @@ def _read_journals_from_items_file() -> dict:
     return raw_items_data['items']['journalitem']
 
 
-def _group_journals_by_item(journals_data: dict[str, dict]) -> dict[str, str]:
+def _group_journals_by_item(journals_data: dict[str, dict]) -> dict[str, dict]:
     return {item_id: journal
             for journal_id, journal in journals_data.items()
             for item_id in journal['valid_items']}

@@ -8,13 +8,13 @@
 <div style="text-align: center">
     <h4>
         {% if page-1>0 %}
-        <a href="{{url_for('webapp.index', page=1, page_size=page_size)}}">First</a>
-        <a href="{{url_for('webapp.index', page=page-1, page_size=page_size)}}">{{page-1}}</a>
+        <a href="{{url_for('webapp.results', page=1, page_size=page_size)}}">First</a>
+        <a href="{{url_for('webapp.results', page=page-1, page_size=page_size)}}">{{page-1}}</a>
         {% endif %}
         {{page}}
         {% if calculations|length == page_size %}
-        <a href="{{url_for('webapp.index', page=page+1, page_size=page_size)}}">{{page+1}}</a>
-        <a href="{{url_for('webapp.index', page=9999, page_size=page_size)}}">Last</a>
+        <a href="{{url_for('webapp.results', page=page+1, page_size=page_size)}}">{{page+1}}</a>
+        <a href="{{url_for('webapp.results', page=9999, page_size=page_size)}}">Last</a>
         {% endif %}
     </h4>
 </div>
@@ -63,13 +63,13 @@
 <div style="text-align: center">
     <h4>
         {% if page-1>0 %}
-        <a href="{{url_for('webapp.index', page=1, page_size=page_size)}}">First</a>
-        <a href="{{url_for('webapp.index', page=page-1, page_size=page_size)}}">{{page-1}}</a>
+        <a href="{{url_for('webapp.results', page=1, page_size=page_size)}}">First</a>
+        <a href="{{url_for('webapp.results', page=page-1, page_size=page_size)}}">{{page-1}}</a>
         {% endif %}
         {{page}}
         {% if calculations|length == page_size %}
-        <a href="{{url_for('webapp.index', page=page+1, page_size=page_size)}}">{{page+1}}</a>
-        <a href="{{url_for('webapp.index', page=9999, page_size=page_size)}}">Last</a>
+        <a href="{{url_for('webapp.results', page=page+1, page_size=page_size)}}">{{page+1}}</a>
+        <a href="{{url_for('webapp.results', page=9999, page_size=page_size)}}">Last</a>
         {% endif %}
     </h4>
 </div>

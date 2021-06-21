@@ -1,6 +1,6 @@
 import jinja2
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
 
 from albion_calculator import calculator, shop_categories
 
@@ -20,8 +20,13 @@ def show_details() -> str:
     return render_template('details.html', calculation=calculation)
 
 
-@bp.route('/', methods=['POST', 'GET'], strict_slashes=False)
+@bp.route('/')
 def index():
+    return render_template('index.html')
+
+
+@bp.route('/results', methods=['POST', 'GET'])
+def results():
     if request.method == 'POST':
         form_data = request.form
         session['formdata'] = form_data
@@ -29,23 +34,28 @@ def index():
         form_data = session.get('formdata', None)
 
     if not form_data:
-        return render_template('index.html')
+        return redirect(url_for('webapp.index'))
 
-    recipe_type = form_data.get('recipe_type', 'CRAFTING')
-    limitation = form_data.get('limitation', 'TRAVEL')
-    city = int(form_data.get('city', '0'))
-    focus = form_data.get('focus', False)
-    category = form_data.get('category', None)
+    calculations, update_time = calculator.get_calculations(recipe_type=form_data.get('recipe_type', 'CRAFTING'),
+                                                            limitation=form_data.get('limitation', 'TRAVEL'),
+                                                            city_index=int(form_data.get('city', '0')),
+                                                            use_focus=form_data.get('focus', False),
+                                                            category=form_data.get('category', None))
     page = int(request.args.get('page', 1))
     page_size = int(request.args.get('page_size', 50))
+    page, paginated_calculations = paginate_calculations(calculations, page, page_size)
+    return render_template('index.html', page=page, page_size=page_size,
+                           calculations=paginated_calculations, update_time=update_time)
+
+
+def paginate_calculations(calculations, page, page_size):
     start = (page - 1) * page_size
     end = page * page_size
-    calculations, update_time = calculator.get_calculations(recipe_type, limitation, city, focus, category)
     if start > len(calculations):
         page = len(calculations) // page_size
         start = page * page_size
-    return render_template('index.html', page=page, page_size=page_size, calculations=calculations[start:end],
-                           update_time=update_time)
+    paginated_calculations = calculations[start:end]
+    return page, paginated_calculations
 
 
 def init() -> None:

@@ -2,7 +2,7 @@ import datetime
 import logging
 from dataclasses import dataclass
 from math import nan
-from typing import List, Dict, Union, Tuple, Optional
+from typing import Union, Optional
 
 import numpy as np
 from numpy import ndarray
@@ -141,12 +141,12 @@ def _summarize_profit(final_profit_matrix: ndarray, ingredients_costs: list[dict
         product_tier=items.get_item_tier(recipe.result_item_id),
         product_quantity=recipe.result_quantity,
         recipe_type=recipe.recipe_type,
-        final_product_price=round(final_product_price, 2),
+        final_product_price=int(final_product_price),
         ingredients_total_cost=ingredients_total_cost,
-        profit_without_journals=round(max_profit, 2),
+        profit_without_journals=int(max_profit),
         profit_per_journal=round(journal_profit_details['profit_per_journal'], 2),
         journals_filled=round(journal_profit_details['journals_filled'], 2),
-        profit_with_journals=round(final_profit, 2),
+        profit_with_journals=int(final_profit),
         profit_percentage=round(final_profit / ingredients_total_cost * 100, 2),
         destination_city=cities.city_at_index(destination_city_index),
         production_city=cities.city_at_index(production_city_index),
@@ -167,10 +167,10 @@ def _summarize_ingredient_details(ingredients_costs: list[dict[str, tuple]], mul
         ingredients_details.append(IngredientDetails(
             name=items.get_item_name(item_id),
             item_id=item_id,
-            local_price=round(local_price, 2),
-            total_cost=round(total_cost, 2),
-            total_cost_with_transport=round(total_cost_with_transport, 2),
-            total_cost_with_returns=round(price_with_returns, 2),
+            local_price=int(local_price),
+            total_cost=int(total_cost),
+            total_cost_with_transport=int(total_cost_with_transport),
+            total_cost_with_returns=int(price_with_returns),
             source_city=cities.city_at_index(import_from),
             quantity=quantity
         ))
@@ -243,9 +243,10 @@ update_datetime = None
 def initialize_or_update_calculations() -> None:
     global update_datetime
     market.update_prices()
-    _update_crafting_calculations()
     _update_transport_calculations()
-    _update_upgrade_calculations()
+    if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
+        _update_crafting_calculations()
+        _update_upgrade_calculations()
     update_datetime = datetime.datetime.now()
     logging.info('all calculations loaded')
 

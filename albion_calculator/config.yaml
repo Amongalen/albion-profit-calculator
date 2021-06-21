@@ -1,9 +1,8 @@
 APP:
   CALCULATOR:
     TRAVEL_COST_ONE_TILE: 1.05
-    PROFIT_PERCENTAGE_LIMIT: 150000
-
-
+    PROFIT_PERCENTAGE_LIMIT: 150
+    TESTING: false
 
 DATA_PROJECT:
   API_ADDRESS: 'https://www.albion-online-data.com/api/v2/stats'
