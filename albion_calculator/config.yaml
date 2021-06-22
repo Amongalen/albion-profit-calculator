@@ -3,6 +3,11 @@ APP:
     TRAVEL_COST_ONE_TILE: 1.05
     PROFIT_PERCENTAGE_LIMIT: 150
     TESTING: false
+  WEBAPP:
+    UPDATE_HOURS:
+      - 6
+      - 18
+
 
 DATA_PROJECT:
   API_ADDRESS: 'https://www.albion-online-data.com/api/v2/stats'

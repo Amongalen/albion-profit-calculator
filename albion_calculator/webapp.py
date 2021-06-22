@@ -1,8 +1,8 @@
 import jinja2
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for
 
-from albion_calculator import calculator, shop_categories
+from albion_calculator import calculator, shop_categories, config
 
 bp = Blueprint('webapp', __name__)
 
@@ -65,13 +65,15 @@ def paginate_calculations(calculations, page, page_size):
 
 
 def init() -> None:
-    calculator.initialize_or_update_calculations()
+    # calculator.initialize_or_update_calculations()
     _start_background_calculator_job()
 
 
 def _start_background_calculator_job() -> None:
     scheduler = BackgroundScheduler(daemon=True)
-    scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour='6,18')
+    hours = config.CONFIG['APP']['WEBAPP']['UPDATE_HOURS']
+    hours = hours if isinstance(hours, list) else [hours]
+    scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour=','.join(hours))
     scheduler.start()
 
 
