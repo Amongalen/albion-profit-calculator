@@ -1,5 +1,6 @@
 import functools
 import json
+import os
 import pathlib
 from datetime import datetime, timedelta
 from typing import Optional
@@ -30,6 +31,7 @@ def _read_local_cache_file() -> Optional[dict]:
 
 
 def _write_to_local_cache_file(cache_json: dict) -> None:
+    os.makedirs(os.path.dirname(_CACHE_FILENAME), exist_ok=True)
     with open(_CACHE_FILENAME, 'w') as f:
         json.dump(cache_json, f, indent=1)
 
