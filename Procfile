@@ -1,1 +1,1 @@
-web: gunicorn albion_calculator:create_app()
+web: gunicorn albion_calculator:app

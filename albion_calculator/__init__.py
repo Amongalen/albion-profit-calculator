@@ -9,7 +9,6 @@ logging.basicConfig(filename='logs.log', format='%(asctime)s %(message)s', datef
                     level=logging.INFO)
 
 
-# todo display details in popup
 def create_app():
     webapp.init()
     app = Flask(__name__, static_folder='resources/static', template_folder='resources/templates',
@@ -25,3 +24,6 @@ def create_app():
     app.secret_key = 'secret'
 
     return app
+
+
+app = create_app()
