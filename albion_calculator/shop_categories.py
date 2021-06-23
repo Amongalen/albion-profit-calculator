@@ -1,8 +1,9 @@
 import json
+import pathlib
 
 from albion_calculator import items, craftingmodifiers
 
-_CATEGORIES_FILENAME = 'resources/shop_categories.json'
+_CATEGORIES_FILENAME = pathlib.Path(__file__).parent /'resources/shop_categories.json'
 
 
 def get_category_pretty_name(category_id: str) -> str:

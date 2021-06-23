@@ -1,15 +1,16 @@
 import copy
 import json
 import math
+import pathlib
 import re
 from dataclasses import dataclass, field
 from typing import List, NamedTuple, Optional
 
-_ITEM_NAMES_TXT_FILE = 'resources/item_names.txt'
+_ITEM_NAMES_TXT_FILE = pathlib.Path(__file__).parent / 'resources/item_names.txt'
 
-ITEMS_JSON_FILE = 'resources/items.json'
+ITEMS_JSON_FILE = pathlib.Path(__file__).parent/ 'resources/items.json'
 
-CRAFTING_FAME_JSON_FILE = 'resources/crafting_fame.json'
+CRAFTING_FAME_JSON_FILE = pathlib.Path(__file__).parent / 'resources/crafting_fame.json'
 
 _ITEM_ID_KEY = '@uniquename'
 

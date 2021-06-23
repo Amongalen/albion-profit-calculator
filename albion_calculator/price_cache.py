@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 
+_CACHE_LIFETIME = 6
+_CACHE_FILENAME = pathlib.Path(__file__).parent / 'cache/price.cache'
+
+
 def local_price_cache(func: callable) -> callable:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -41,7 +45,3 @@ def _is_cache_up_to_date() -> bool:
     elapsed_time = current_time - modification_time
     hours_passed = elapsed_time // timedelta(hours=1)
     return hours_passed < _CACHE_LIFETIME
-
-
-_CACHE_LIFETIME = 6
-_CACHE_FILENAME = 'cache/price.cache'

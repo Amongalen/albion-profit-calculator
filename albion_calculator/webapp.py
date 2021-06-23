@@ -73,6 +73,7 @@ def _start_background_calculator_job() -> None:
     scheduler = BackgroundScheduler(daemon=True)
     hours = config.CONFIG['APP']['WEBAPP']['UPDATE_HOURS']
     hours = hours if isinstance(hours, list) else [hours]
+    hours = [str(hour) for hour in hours]
     scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour=','.join(hours))
     scheduler.start()
 
