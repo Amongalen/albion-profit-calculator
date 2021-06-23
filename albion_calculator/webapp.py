@@ -65,7 +65,7 @@ def paginate_calculations(calculations, page, page_size):
 
 
 def init() -> None:
-    calculator.initialize_or_update_calculations()
+    # calculator.initialize_or_update_calculations()
     _start_background_calculator_job()
 
 
@@ -74,6 +74,7 @@ def _start_background_calculator_job() -> None:
     hours = config.CONFIG['APP']['WEBAPP']['UPDATE_HOURS']
     hours = hours if isinstance(hours, list) else [hours]
     hours = [str(hour) for hour in hours]
+    scheduler.add_job(calculator.initialize_or_update_calculations)
     scheduler.add_job(calculator.initialize_or_update_calculations, 'cron', hour=','.join(hours))
     scheduler.start()
 
