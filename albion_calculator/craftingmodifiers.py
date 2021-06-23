@@ -1,10 +1,13 @@
 import json
+import pathlib
 
 import numpy as np
 from numpy import ndarray
 
 from albion_calculator import items
 from albion_calculator.cities import cities_names
+
+CRAFTINGMODIFIERS_FILE = pathlib.Path(__file__).parent / 'resources/craftingmodifiers.json'
 
 _SUBCATEGORY_REPLACEMENTS = {'ore': 'metalbar',
                              'wood': 'planks',
@@ -50,7 +53,7 @@ def _replace_refining_category(name: str) -> str:
 
 
 def _load_crafting_modifiers_file() -> list[dict]:
-    with open('resources/craftingmodifiers.json') as f:
+    with open(CRAFTINGMODIFIERS_FILE) as f:
         raw_crafting_modifiers_data = json.load(f)
     return raw_crafting_modifiers_data['craftingmodifiers']['craftinglocation']
 

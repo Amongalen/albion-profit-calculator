@@ -8,7 +8,7 @@ from typing import List, NamedTuple, Optional
 
 _ITEM_NAMES_TXT_FILE = pathlib.Path(__file__).parent / 'resources/item_names.txt'
 
-ITEMS_JSON_FILE = pathlib.Path(__file__).parent/ 'resources/items.json'
+ITEMS_JSON_FILE = pathlib.Path(__file__).parent / 'resources/items.json'
 
 CRAFTING_FAME_JSON_FILE = pathlib.Path(__file__).parent / 'resources/crafting_fame.json'
 
