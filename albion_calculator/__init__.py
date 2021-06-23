@@ -5,7 +5,7 @@ from flask import Flask
 
 from albion_calculator import webapp
 
-logging.basicConfig(filename='logs.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
                     level=logging.INFO)
 
 
