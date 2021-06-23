@@ -21,4 +21,5 @@ def _get_json_from_url(url: str) -> list[dict]:
     response = requests.get(url, params=_REQUEST_PARAMS)
     if not response.ok:
         logging.error(f'{response.status_code} {response.text}')
-    return response.json() if response.ok else None
+        return []
+    return response.json()
