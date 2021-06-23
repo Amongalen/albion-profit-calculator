@@ -1,1 +1,1 @@
-web: gunicorn albion_calculator:app
+web: gunicorn --preload albion_calculator:app

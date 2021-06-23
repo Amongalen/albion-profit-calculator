@@ -4,7 +4,6 @@ from math import nan
 from typing import Generator, Any, Union
 
 import numpy as np
-import tqdm as tqdm
 from numpy import ndarray
 
 from albion_calculator import items, config
@@ -165,7 +164,7 @@ def _normalize_datetime_format(record: dict) -> dict:
 
 def _chunks(lst: list, n: int) -> Generator:
     # Yield successive n-sized chunks from lst.
-    for i in tqdm.tqdm(range(0, len(lst), n), desc='Pulling prices'):
+    for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
 
