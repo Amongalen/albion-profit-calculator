@@ -154,6 +154,8 @@ def _parse_timestamp(timestamp_str: str) -> datetime:
 
 
 def _normalize_datetime_format(record: dict) -> dict:
+    if record == {}:
+        return {}
     record['sell_price_min_date'] = str(_parse_timestamp(record['sell_price_min_date']))
     record['sell_price_max_date'] = str(_parse_timestamp(record['sell_price_max_date']))
     record['buy_price_min_date'] = str(_parse_timestamp(record['buy_price_min_date']))
