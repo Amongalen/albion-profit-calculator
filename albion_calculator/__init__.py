@@ -11,7 +11,7 @@ logging.basicConfig(filename='logs.log', format='%(asctime)s %(message)s', datef
 
 # todo display details in popup
 def create_app():
-    print(os.getcwd())
+    logging.error(os.getcwd())
     # webapp.init()
     app = Flask(__name__, static_folder='resources/static', template_folder='resources/templates',
                 instance_relative_config=True)
