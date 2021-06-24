@@ -91,9 +91,9 @@ def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
         history_prices_for_item = history_prices_with_merged_quality.get(item_id, {})
         latest_prices_for_item = filtered_latest_prices.get(item_id, {})
         result[item_id] = _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
-        if item_id == 'T2_HEAD_PLATE_SET1':
-            logging.info('######### T2_HEAD_PLATE_SET1 #########')
-            logging.info(result['T2_HEAD_PLATE_SET1'])
+        if item_id == 'T2_HEAD_CLOTH_SET1':
+            logging.info('######### T2_HEAD_CLOTH_SET1 #########')
+            logging.info(result['T2_HEAD_CLOTH_SET1'])
     return result
 
 
