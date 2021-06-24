@@ -96,8 +96,8 @@ def get_calculations(recipe_type: str, limitation: str, city_index: int, use_foc
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
 
-    logging.debug('T1_2H_TOOL_PICK:')
-    logging.debug(market.get_prices_for_item('T1_2H_TOOL_PICK'))
+    logging.info('T2_HEAD_PLATE_SET1:')
+    logging.info(market.get_prices_for_item('T2_HEAD_PLATE_SET1'))
 
     logging.debug('calculations:')
     for k, v in calculations.items():
