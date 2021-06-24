@@ -162,10 +162,11 @@ def _normalize_datetime_format(record: dict) -> dict:
     return record
 
 
-def _chunks(lst: list, n: int) -> Generator:
+def _chunks(lst: list, n: int) -> list:
     # Yield successive n-sized chunks from lst.
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        # todo yield!
+        return [lst[i:i + n]]
 
 
 def _correct_erroneous_prices(estimated_prices: dict) -> dict:
