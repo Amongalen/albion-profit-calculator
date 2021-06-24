@@ -96,7 +96,7 @@ def get_calculations(recipe_type: str, limitation: str, city_index: int, use_foc
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
 
-    logging.info('T2_HEAD_PLATE_SET1:')
+    logging.info('######### IN get_calculations:')
     logging.info(market.get_prices_for_item('T2_HEAD_PLATE_SET1'))
 
     logging.debug('calculations:')
@@ -114,6 +114,9 @@ def get_calculations(recipe_type: str, limitation: str, city_index: int, use_foc
 
 def _calculate_profit_details_for_recipe(recipe: Recipe, multiplier: ndarray,
                                          use_focus: bool) -> Optional[ProfitDetails]:
+    if recipe.result_item_id == 'T2_HEAD_PLATE_SET1':
+        logging.info('######### IN _calculate_profit_details_for_recipe:')
+        logging.info(market.get_prices_for_item('T2_HEAD_PLATE_SET1'))
     missing_ingredients = _check_missing_ingredients_prices(recipe, multiplier)
     if missing_ingredients:
         return None
