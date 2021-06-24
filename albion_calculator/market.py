@@ -89,9 +89,9 @@ def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
         history_prices_for_item = history_prices_with_merged_quality.get(item_id, {})
         latest_prices_for_item = filtered_latest_prices.get(item_id, {})
         result[item_id] = _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
-        if item_id == 'T4_MAIN_MACE_HELL':
-            logging.error('######### T4_MAIN_MACE_HELL #########')
-            logging.error(result['T4_MAIN_MACE_HELL'])
+        if item_id == 'T1_2H_TOOL_PICK':
+            logging.error('######### T1_2H_TOOL_PICK #########')
+            logging.error(result['T1_2H_TOOL_PICK'])
     return result
 
 
