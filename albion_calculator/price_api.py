@@ -14,10 +14,6 @@ def get_prices(items_ids: list[str]) -> tuple[list, list]:
     prices_url = _API_ADDRESS.format(type='prices', items=items_parameter)
     history_prices = _get_json_from_url(history_url)
     latest_prices = _get_json_from_url(prices_url)
-    logging.debug('history_prices:')
-    logging.debug(history_prices)
-    logging.debug('latest_prices:')
-    logging.debug(latest_prices)
 
     return history_prices, latest_prices
 

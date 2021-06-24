@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import nan
@@ -88,6 +89,9 @@ def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
         history_prices_for_item = history_prices_with_merged_quality.get(item_id, {})
         latest_prices_for_item = filtered_latest_prices.get(item_id, {})
         result[item_id] = _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
+        if item_id == 'T4_MAIN_MACE_HELL':
+            logging.debug('######### T4_MAIN_MACE_HELL #########')
+            logging.debug(result['T4_MAIN_MACE_HELL'])
     return result
 
 
@@ -162,11 +166,10 @@ def _normalize_datetime_format(record: dict) -> dict:
     return record
 
 
-def _chunks(lst: list, n: int) -> list:
+def _chunks(lst: list, n: int) -> Generator:
     # Yield successive n-sized chunks from lst.
     for i in range(0, len(lst), n):
-        # todo yield!
-        return [lst[i:i + n]]
+        yield lst[i:i + n]
 
 
 def _correct_erroneous_prices(estimated_prices: dict) -> dict:
