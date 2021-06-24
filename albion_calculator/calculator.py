@@ -95,8 +95,13 @@ def get_calculations(recipe_type: str, limitation: str, city_index: int, use_foc
                      category: str) -> tuple[list[ProfitDetails], datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
+
+    logging.debug('T4_MAIN_MACE_HELL:')
+    logging.debug(market.get_prices_for_item('T4_MAIN_MACE_HELL'))
+
     logging.debug('calculations:')
-    logging.debug(calculations)
+    for k, v in calculations.items():
+        logging.debug(f'{k}: {len(v)}')
     logging.debug('...')
     calculations_for_key = calculations.get(key, None)
     if not calculations_for_key:
@@ -277,6 +282,7 @@ def _update_transport_calculations() -> None:
 def _update_crafting_calculations() -> None:
     global calculations
     recipes = items.get_all_crafting_recipes()
+    logging.debug(f'crafting recipes: {len(recipes)}')
     calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
     calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
     calculations.update(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=True))
