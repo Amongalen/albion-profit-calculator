@@ -50,7 +50,7 @@ class Item:
 
 
 def get_all_items_ids() -> list[str]:
-    return list(_items_data.keys())
+    return list(_items_data.keys())[:200]
 
 
 def get_item_subcategory(item_id: str) -> str:

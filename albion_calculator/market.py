@@ -90,8 +90,8 @@ def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
         latest_prices_for_item = filtered_latest_prices.get(item_id, {})
         result[item_id] = _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
         if item_id == 'T4_MAIN_MACE_HELL':
-            logging.debug('######### T4_MAIN_MACE_HELL #########')
-            logging.debug(result['T4_MAIN_MACE_HELL'])
+            logging.error('######### T4_MAIN_MACE_HELL #########')
+            logging.error(result['T4_MAIN_MACE_HELL'])
     return result
 
 
