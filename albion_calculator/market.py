@@ -85,13 +85,15 @@ def _get_prices_data_for_chunk(items_ids: list[str]) -> dict:
     history_prices_with_merged_quality = _merge_quality_data(history_prices_by_item_and_city)
     filtered_latest_prices = _filter_latest_quality_data(latest_prices_by_item_and_city)
     result = {}
+    logging.info('######### TEST ############')
+    logging.info(items_ids)
     for item_id in items_ids:
         history_prices_for_item = history_prices_with_merged_quality.get(item_id, {})
         latest_prices_for_item = filtered_latest_prices.get(item_id, {})
         result[item_id] = _merge_latest_and_history_prices(history_prices_for_item, latest_prices_for_item)
         if item_id == 'T1_2H_TOOL_PICK':
-            logging.error('######### T1_2H_TOOL_PICK #########')
-            logging.error(result['T1_2H_TOOL_PICK'])
+            logging.info('######### T1_2H_TOOL_PICK #########')
+            logging.info(result['T1_2H_TOOL_PICK'])
     return result
 
 
