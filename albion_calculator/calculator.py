@@ -95,7 +95,13 @@ def get_calculations(recipe_type: str, limitation: str, city_index: int, use_foc
                      category: str) -> tuple[list[ProfitDetails], datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     city_name = cities.city_at_index(city_index)
-    result = calculations[key][city_name] if limitation == 'PER_CITY' else calculations[key]
+    logging.debug('calculations:')
+    logging.debug(calculations)
+    logging.debug('...')
+    calculations_for_key = calculations.get(key, None)
+    if not calculations_for_key:
+        return [], update_datetime
+    result = calculations_for_key[city_name] if limitation == 'PER_CITY' else calculations_for_key
     if category and not category == 'all':
         result = [record for record in result if record.product_subcategory_id == category]
     return result, update_datetime
