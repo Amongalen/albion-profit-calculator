@@ -1,14 +1,21 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import NamedTuple
 
-Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
+
+# Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
 
 
 class RecipeType(str, Enum):
     CRAFTING = 'crafting'
     UPGRADE = 'upgrade'
     TRANSPORT = 'transport'
+
+
+@dataclass(frozen=True)
+class Ingredient:
+    item_id: str
+    quantity: int
+    max_return_rate: int
 
 
 @dataclass(frozen=True)
@@ -22,7 +29,7 @@ class Recipe:
 
 @dataclass(frozen=True)
 class Item:
-    id: str
+    item_id: str
     name: str
     category: str
     subcategory: str

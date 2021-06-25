@@ -65,7 +65,6 @@ def paginate_calculations(calculations, page, page_size):
 
 
 def init() -> None:
-    # calculator.initialize_or_update_calculations()
     _start_background_calculator_job()
 
 
