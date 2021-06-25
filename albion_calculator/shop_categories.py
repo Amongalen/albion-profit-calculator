@@ -1,9 +1,10 @@
 import json
 import pathlib
 
-from albion_calculator import items, craftingmodifiers
+import albion_calculator.items_parser
+from albion_calculator import craftingmodifiers
 
-_CATEGORIES_FILENAME = pathlib.Path(__file__).parent /'resources/shop_categories.json'
+_CATEGORIES_FILENAME = pathlib.Path(__file__).parent / 'resources/shop_categories.json'
 
 
 def get_category_pretty_name(category_id: str) -> str:
@@ -22,7 +23,7 @@ def _load_shop_subcategories() -> list[str]:
 
 
 def _read_items_file() -> dict:
-    with open(items.ITEMS_JSON_FILE) as f:
+    with open(albion_calculator.items_parser.ITEMS_JSON_FILE) as f:
         return json.load(f)
 
 

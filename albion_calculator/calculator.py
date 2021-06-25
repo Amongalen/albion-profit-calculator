@@ -7,8 +7,9 @@ from typing import Union, Optional
 import numpy as np
 from numpy import ndarray
 
+import albion_calculator.items
 from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config
-from albion_calculator.items import Recipe, Ingredient
+from albion_calculator.items import RecipeType, Ingredient, Recipe
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
 
 _PROFIT_LIMIT = config.CONFIG['APP']['CALCULATOR']['PROFIT_PERCENTAGE_LIMIT']
@@ -78,7 +79,7 @@ class ProfitDetails:
     product_subcategory_id: str
     product_tier: str
     product_quantity: int
-    recipe_type: str
+    recipe_type: RecipeType
     final_product_price: float
     ingredients_total_cost: float
     profit_without_journals: float
@@ -194,7 +195,7 @@ def _summarize_ingredient_details(ingredients_costs: list[dict[str, tuple]], mul
 
 def _calculate_journal_profit(recipe: Recipe) -> dict[str, float]:
     no_journal_profit = {'journals_profit': 0, 'profit_per_journal': 0, 'journals_filled': 0}
-    if not recipe.recipe_type == Recipe.CRAFTING_RECIPE:
+    if not recipe.recipe_type == RecipeType.CRAFTING:
         return no_journal_profit
     item_id = recipe.result_item_id
     journal = journals.get_journal_for_item(item_id)
@@ -246,7 +247,7 @@ def _calculate_ingredients_best_deals(multiplier: ndarray, recipe: Recipe,
 def _calculate_single_ingredient_cost(ingredient: Ingredient, multiplier: ndarray, recipe_type: str,
                                       return_rates: ndarray) -> ndarray:
     price_matrix = get_prices_for_item(ingredient.item_id) * ingredient.quantity * multiplier
-    if recipe_type == Recipe.CRAFTING_RECIPE and ingredient.max_return_rate != 0:
+    if recipe_type == RecipeType.CRAFTING and ingredient.max_return_rate != 0:
         price_matrix = price_matrix * return_rates
     return price_matrix
 
@@ -268,7 +269,7 @@ def initialize_or_update_calculations() -> None:
 
 def _update_upgrade_calculations() -> None:
     global calculations
-    recipes = items.get_all_upgrade_recipes()
+    recipes = albion_calculator.items.get_all_upgrade_recipes()
     calculations.update(_calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
     calculations.update(_calculate_profits('UPGRADE', 'NO_TRAVEL', recipes, use_focus=False))
     calculations.update(_calculate_profits('UPGRADE', 'TRAVEL', recipes, use_focus=False))
@@ -277,14 +278,14 @@ def _update_upgrade_calculations() -> None:
 
 def _update_transport_calculations() -> None:
     global calculations
-    recipes = items.get_all_transport_recipes()
+    recipes = albion_calculator.items.get_all_transport_recipes()
     calculations.update(_calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
     calculations.update(_calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
 
 
 def _update_crafting_calculations() -> None:
     global calculations
-    recipes = items.get_all_crafting_recipes()
+    recipes = albion_calculator.items.get_all_crafting_recipes()
     logging.debug(f'crafting recipes: {len(recipes)}')
     calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
     calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
