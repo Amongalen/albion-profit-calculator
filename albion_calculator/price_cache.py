@@ -37,7 +37,6 @@ def _write_to_local_cache_file(cache_json: dict) -> None:
 
 
 def _is_cache_up_to_date() -> bool:
-    return False
     file_metadata = pathlib.Path(_CACHE_FILENAME)
 
     if not file_metadata.exists():

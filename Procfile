@@ -1,1 +1,1 @@
-web: gunicorn --preload --workers=1 albion_calculator:app
+web: gunicorn --preload --workers=1 webapp:app

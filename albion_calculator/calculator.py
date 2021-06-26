@@ -1,16 +1,16 @@
 import datetime
 import logging
-from dataclasses import dataclass
 from math import nan
-from typing import Union, Optional
+from typing import Optional
 
 import numpy as np
 from numpy import ndarray
 
 import albion_calculator.items
-from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config
-from albion_calculator.items import RecipeType, Ingredient, Recipe
+from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config, database
 from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
+from albion_calculator.models import RecipeType, Ingredient, Recipe, IngredientDetails, ProfitDetails, \
+    CalculationsUpdate
 
 _PROFIT_LIMIT = config.CONFIG['APP']['CALCULATOR']['PROFIT_PERCENTAGE_LIMIT']
 
@@ -57,39 +57,6 @@ _MULTIPLIERS = {
     ]),
     'PER_CITY': _one_city_multipliers(),
 }
-
-
-@dataclass
-class IngredientDetails:
-    name: str
-    item_id: str
-    quantity: int
-    local_price: float
-    total_cost: float
-    total_cost_with_transport: float
-    total_cost_with_returns: float
-    source_city: str
-
-
-@dataclass
-class ProfitDetails:
-    product_id: str
-    product_name: str
-    product_subcategory: str
-    product_subcategory_id: str
-    product_tier: str
-    product_quantity: int
-    recipe_type: RecipeType
-    final_product_price: float
-    ingredients_total_cost: float
-    profit_without_journals: float
-    profit_per_journal: float
-    journals_filled: float
-    profit_with_journals: float
-    profit_percentage: float
-    destination_city: str
-    production_city: str
-    ingredients_details: list[IngredientDetails]
 
 
 def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
@@ -166,7 +133,6 @@ def _summarize_profit(final_profit_matrix: ndarray, ingredients_costs: list[dict
         destination_city=cities.city_at_index(destination_city_index),
         production_city=cities.city_at_index(production_city_index),
         ingredients_details=ingredients_details
-
     )
 
 
@@ -181,7 +147,7 @@ def _summarize_ingredient_details(ingredients_costs: list[dict[str, tuple]], mul
         total_cost = quantity * local_price
         total_cost_with_transport = total_cost * multiplier[import_from][production_city_index]
         ingredients_details.append(IngredientDetails(
-            name=items.get_item_name(item_id),
+            item_name=items.get_item_name(item_id),
             item_id=item_id,
             local_price=int(local_price),
             total_cost=int(total_cost),
@@ -256,67 +222,76 @@ calculations = {}
 update_datetime = None
 
 
-def initialize_or_update_calculations() -> None:
+def update_calculations() -> None:
     global update_datetime
     market.update_prices()
-    _update_transport_calculations()
+    calculations_update = CalculationsUpdate()
+    calculations_update.profit_details.extend(_update_transport_calculations())
     if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
-        _update_crafting_calculations()
-        _update_upgrade_calculations()
-    update_datetime = datetime.datetime.now()
+        calculations_update.profit_details.extend(_update_crafting_calculations())
+        calculations_update.profit_details.extend(_update_upgrade_calculations())
     logging.info('all calculations loaded')
+    database.save_calculations_update(calculations_update)
+    database.clear_previous_calculation_updates()
 
 
-def _update_upgrade_calculations() -> None:
-    global calculations
+def _update_upgrade_calculations() -> list[ProfitDetails]:
     recipes = albion_calculator.items.get_all_upgrade_recipes()
-    calculations.update(_calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
-    calculations.update(_calculate_profits('UPGRADE', 'NO_TRAVEL', recipes, use_focus=False))
-    calculations.update(_calculate_profits('UPGRADE', 'TRAVEL', recipes, use_focus=False))
-    calculations.update(_calculate_profits('UPGRADE', 'NO_RISK', recipes, use_focus=False))
+    calculations = []
+    calculations.extend(_calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('UPGRADE', 'NO_TRAVEL', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('UPGRADE', 'TRAVEL', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('UPGRADE', 'NO_RISK', recipes, use_focus=False))
+    return calculations
 
 
-def _update_transport_calculations() -> None:
-    global calculations
+def _update_transport_calculations() -> list[ProfitDetails]:
     recipes = albion_calculator.items.get_all_transport_recipes()
-    calculations.update(_calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
-    calculations.update(_calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
+    calculations = []
+    calculations.extend(_calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
+    return calculations
 
 
-def _update_crafting_calculations() -> None:
+def _update_crafting_calculations() -> list[ProfitDetails]:
     global calculations
     recipes = albion_calculator.items.get_all_crafting_recipes()
-    logging.debug(f'crafting recipes: {len(recipes)}')
-    calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
-    calculations.update(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
-    calculations.update(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=True))
-    calculations.update(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=False))
-    calculations.update(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=True))
-    calculations.update(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=False))
-    calculations.update(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=True))
-    calculations.update(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=False))
+    calculations = []
+    calculations.extend(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
+    calculations.extend(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=True))
+    calculations.extend(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=True))
+    calculations.extend(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=False))
+    calculations.extend(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=True))
+    calculations.extend(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=False))
+    return calculations
 
 
 def _calculate_profits(recipe_type: str, limitations: str, recipes: list[Recipe], use_focus: bool) -> \
-        Union[dict[str, list[ProfitDetails]], dict[str, dict[str, ProfitDetails]]]:
+        list[ProfitDetails]:
+    type_key = _create_calculation_key(limitations, recipe_type, use_focus)
     if limitations == 'PER_CITY':
-        profits = _calculate_profits_per_city(recipes, use_focus)
+        profits = _calculate_profits_per_city(recipes, use_focus, type_key)
     else:
-        profits = _calculate_profits_for_recipes(recipes, _MULTIPLIERS[limitations], use_focus)
-    key = _create_calculation_key(limitations, recipe_type, use_focus)
-    logging.debug(f'{key} loaded')
-    return {key: profits}
+        profits = _calculate_profits_for_recipes(recipes, _MULTIPLIERS[limitations], use_focus, type_key)
+    logging.debug(f'{type_key} loaded')
+    return profits
 
 
-def _calculate_profits_per_city(recipes: list[Recipe], use_focus: bool) -> dict[str, list[ProfitDetails]]:
-    return {city_name: _calculate_profits_for_recipes(recipes, multiplier, use_focus)
-            for city_name, multiplier in zip(cities.cities_names(), _MULTIPLIERS['PER_CITY'])}
+def _calculate_profits_per_city(recipes: list[Recipe], use_focus: bool, type_key: str) -> list[ProfitDetails]:
+    return [profit_details
+            for city_name, multiplier in zip(cities.cities_names(), _MULTIPLIERS['PER_CITY'])
+            for profit_details in _calculate_profits_for_recipes(recipes, multiplier, use_focus, type_key + city_name)]
 
 
-def _calculate_profits_for_recipes(recipes: list[Recipe], multiplier: ndarray, use_focus: bool) -> list[ProfitDetails]:
+def _calculate_profits_for_recipes(recipes: list[Recipe], multiplier: ndarray, use_focus: bool,
+                                   type_key: str) -> list[ProfitDetails]:
     result = [details for recipe in recipes if
               (details := _calculate_profit_details_for_recipe(recipe, multiplier, use_focus))
               and details.profit_percentage < _PROFIT_LIMIT]
+    for record in result:
+        record.type_key = type_key
     return sorted(result, key=lambda x: x.profit_percentage, reverse=True)
 
 

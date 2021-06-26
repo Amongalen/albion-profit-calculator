@@ -1,42 +1,5 @@
-from dataclasses import dataclass, field
-from enum import Enum
-
-
-# Ingredient = NamedTuple('Ingredient', item_id=str, quantity=int, max_return_rate=int)
-
-
-class RecipeType(str, Enum):
-    CRAFTING = 'crafting'
-    UPGRADE = 'upgrade'
-    TRANSPORT = 'transport'
-
-
-@dataclass(frozen=True)
-class Ingredient:
-    item_id: str
-    quantity: int
-    max_return_rate: int
-
-
-@dataclass(frozen=True)
-class Recipe:
-    result_item_id: str
-    recipe_type: RecipeType
-    result_quantity: int = 1
-    silver_cost: int = 0
-    ingredients: list[Ingredient] = field(default_factory=list)
-
-
-@dataclass(frozen=True)
-class Item:
-    item_id: str
-    name: str
-    category: str
-    subcategory: str
-    base_item_id: str
-    recipes: list[Recipe] = field(default_factory=list)
-    crafting_fame: int = 0
-    item_value: int = 0
+from albion_calculator.items_parser import load_items
+from albion_calculator.models import RecipeType, Recipe
 
 
 def get_all_items_ids() -> list[str]:
@@ -65,12 +28,7 @@ def get_items_ids_for_category_or_subcategory(*args: str) -> list[str]:
             or item.category in args]
 
 
-def init_items_data():
-    from albion_calculator.items_parser import load_items
-    return load_items()
-
-
-_items_data = init_items_data()
+_items_data = load_items()
 
 
 def get_all_transport_recipes() -> list[Recipe]:

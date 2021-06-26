@@ -5,7 +5,7 @@ import pathlib
 import re
 from typing import Optional
 
-from albion_calculator.items import Item, RecipeType, Ingredient, Recipe
+from albion_calculator.models import RecipeType, Ingredient, Recipe, Item
 
 _ITEM_NAMES_TXT_FILE = pathlib.Path(__file__).parent / 'resources/item_names.txt'
 ITEMS_JSON_FILE = pathlib.Path(__file__).parent / 'resources/items.json'
