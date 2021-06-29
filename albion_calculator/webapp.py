@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from albion_calculator import calculator, shop_categories, config, models
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 
 def create_app():
@@ -38,7 +38,6 @@ app = create_app()
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 models.init_db()
 start_background_calculator_job()
@@ -78,17 +77,15 @@ def results():
 
     if not form_data:
         return redirect(url_for('index'))
-
     calculations, update_time = calculator.get_calculations(recipe_type=form_data.get('recipe_type', 'CRAFTING'),
                                                             limitation=form_data.get('limitation', 'TRAVEL'),
                                                             city_index=int(form_data.get('city', '0')),
                                                             use_focus=form_data.get('focus', False),
                                                             category=form_data.get('category', None))
     page = int(request.args.get('page', 1))
-    page_size = int(request.args.get('page_size', 50))
-    page, paginated_calculations = paginate_calculations(calculations, page, page_size)
-    return render_template('index.html', page=page, page_size=page_size,
-                           calculations=paginated_calculations, update_time=update_time)
+    per_page = int(request.args.get('per_page', 50))
+    return render_template('index.html', page=page, per_page=per_page,
+                           calculations=calculations, update_time=update_time)
 
 
 def paginate_calculations(calculations, page, page_size):

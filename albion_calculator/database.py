@@ -1,5 +1,8 @@
 import logging
+from datetime import datetime
+from typing import Tuple
 
+from flask_sqlalchemy import Pagination
 from sqlalchemy import desc
 
 from albion_calculator.models import CalculationsUpdate, ProfitDetails, IngredientDetails
@@ -7,8 +10,8 @@ from albion_calculator.models import CalculationsUpdate, ProfitDetails, Ingredie
 
 def bulk_insert_calculations_update(calculations_update: CalculationsUpdate):
     from albion_calculator.webapp import db
-    assign_ids(calculations_update)
-    calculations_update_raw, ingredient_details_raw, profit_details_raw = extract_raw_attributes(calculations_update)
+    _assign_ids(calculations_update)
+    calculations_update_raw, ingredient_details_raw, profit_details_raw = _extract_raw_attributes(calculations_update)
     db.session.bulk_insert_mappings(
         CalculationsUpdate,
         calculations_update_raw
@@ -25,7 +28,30 @@ def bulk_insert_calculations_update(calculations_update: CalculationsUpdate):
     logging.debug(f'{len(calculations_update.profit_details)} calculations saved to DB')
 
 
-def extract_raw_attributes(calculations_update):
+def delete_previous_calculation_updates():
+    from albion_calculator.webapp import db
+    latest_calculation_update = db.session.query(CalculationsUpdate.id).order_by(desc(CalculationsUpdate.id)).first()
+    db.session.query(CalculationsUpdate).filter(CalculationsUpdate.id != latest_calculation_update.id).delete()
+    db.session.commit()
+    logging.debug('Old calculations removed')
+
+
+def find_calculations_for_key_and_category(key: str, category: str) -> \
+        Tuple[Pagination, datetime]:
+    from albion_calculator.webapp import db
+    calculation_update = db.session.query(CalculationsUpdate).order_by(desc(CalculationsUpdate.update_time)).first()
+    if category != 'all':
+        profit_details = db.session.query(ProfitDetails) \
+            .filter_by(calculations_updates_id=calculation_update.id, type_key=key, product_subcategory_id=category) \
+            .paginate(max_per_page=100)
+    else:
+        profit_details = db.session.query(ProfitDetails) \
+            .filter_by(calculations_updates_id=calculation_update.id, type_key=key) \
+            .paginate(max_per_page=100)
+    return profit_details, calculation_update.update_time
+
+
+def _extract_raw_attributes(calculations_update):
     from albion_calculator.webapp import db
     calculations_updates_columns = db.Table('calculations_updates', db.metadata, autoload=True).columns
     calculations_update_raw = [{c.name: getattr(calculations_update, c.name) for c in calculations_updates_columns}]
@@ -39,8 +65,8 @@ def extract_raw_attributes(calculations_update):
     return calculations_update_raw, ingredient_details_raw, profit_details_raw
 
 
-def assign_ids(calculations_update):
-    calculation_update_id, profit_details_id, ingredient_details_id = get_next_ids()
+def _assign_ids(calculations_update):
+    calculation_update_id, profit_details_id, ingredient_details_id = _get_next_ids()
     calculations_update.id = calculation_update_id
     for profit_details in calculations_update.profit_details:
         profit_details.id = profit_details_id
@@ -52,7 +78,7 @@ def assign_ids(calculations_update):
         profit_details_id += 1
 
 
-def get_next_ids():
+def _get_next_ids():
     from albion_calculator.webapp import db
     calculation_update_row = db.session.query(CalculationsUpdate.id).order_by(desc(CalculationsUpdate.id)).first()
     calculation_update_id = calculation_update_row.id + 1 if calculation_update_row else 1
@@ -61,11 +87,3 @@ def get_next_ids():
     ingredient_details_row = db.session.query(IngredientDetails.id).order_by(desc(IngredientDetails.id)).first()
     ingredient_details_id = ingredient_details_row.id + 1 if ingredient_details_row else 1
     return calculation_update_id, profit_details_id, ingredient_details_id
-
-
-def clear_previous_calculation_updates():
-    from albion_calculator.webapp import db
-    latest_calculation_update = db.session.query(CalculationsUpdate.id).order_by(desc(CalculationsUpdate.id)).first()
-    db.session.query(CalculationsUpdate).filter(CalculationsUpdate.id != latest_calculation_update.id).delete()
-    db.session.commit()
-    logging.debug('old calculations removed')

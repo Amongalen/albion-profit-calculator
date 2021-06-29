@@ -1,9 +1,12 @@
+from albion_calculator import config
 from albion_calculator.items_parser import load_items
 from albion_calculator.models import RecipeType, Recipe
 
 
 def get_all_items_ids() -> list[str]:
-    return sorted(list(_items_data.keys()))[:200]
+    if config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
+        return sorted(list(_items_data.keys()))[:200]
+    return sorted(list(_items_data.keys()))
 
 
 def get_item_subcategory(item_id: str) -> str:

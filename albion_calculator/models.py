@@ -130,10 +130,12 @@ def init_db():
         'profit_details': db.relationship(ProfitDetails,
                                           cascade='all,delete,delete-orphan',
                                           backref='calculations_updates',
-                                          passive_deletes=True)})
+                                          passive_deletes=True,
+                                          lazy=True)})
     mapper(ProfitDetails, profit_details_table, properties={
         'ingredients_details': db.relationship(IngredientDetails,
                                                cascade='all,delete,delete-orphan',
                                                backref='profit_details',
-                                               passive_deletes=True)})
+                                               passive_deletes=True,
+                                               lazy=False)})
     mapper(IngredientDetails, ingredient_details_table)

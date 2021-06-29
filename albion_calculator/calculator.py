@@ -62,29 +62,13 @@ _MULTIPLIERS = {
 def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
                      category: str) -> tuple[list[ProfitDetails], datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
-    city_name = cities.city_at_index(city_index)
-
-    logging.info('######### IN get_calculations:')
-    logging.info(market.get_prices_for_item('T2_HEAD_CLOTH_SET1'))
-
-    logging.debug('calculations:')
-    for k, v in calculations.items():
-        logging.debug(f'{k}: {len(v)}')
-    logging.debug('...')
-    calculations_for_key = calculations.get(key, None)
-    if not calculations_for_key:
-        return [], update_datetime
-    result = calculations_for_key[city_name] if limitation == 'PER_CITY' else calculations_for_key
-    if category and not category == 'all':
-        result = [record for record in result if record.product_subcategory_id == category]
-    return result, update_datetime
+    key = key if not limitation == 'PER_CITY' else key + cities.city_at_index(city_index)
+    profit_details, update_time = database.find_calculations_for_key_and_category(key, category)
+    return profit_details.items, update_time
 
 
 def _calculate_profit_details_for_recipe(recipe: Recipe, multiplier: ndarray,
                                          use_focus: bool) -> Optional[ProfitDetails]:
-    if recipe.result_item_id == 'T2_HEAD_CLOTH_SET1':
-        logging.info('######### IN _calculate_profit_details_for_recipe:')
-        logging.info(market.get_prices_for_item('T2_HEAD_CLOTH_SET1'))
     missing_ingredients = _check_missing_ingredients_prices(recipe, multiplier)
     if missing_ingredients:
         return None
@@ -218,23 +202,17 @@ def _calculate_single_ingredient_cost(ingredient: Ingredient, multiplier: ndarra
     return price_matrix
 
 
-calculations = {}
-update_datetime = None
-
-
 def update_calculations() -> None:
-    global update_datetime
     market.update_prices()
     calculations_update = CalculationsUpdate()
     calculations_update.profit_details.extend(_update_transport_calculations())
     if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
         calculations_update.profit_details.extend(_update_crafting_calculations())
         calculations_update.profit_details.extend(_update_upgrade_calculations())
-    logging.info('all calculations loaded')
+    logging.info('Everything calculated')
     try:
         database.bulk_insert_calculations_update(calculations_update)
-        database.clear_previous_calculation_updates()
-        logging.info('all calculations saved')
+        database.delete_previous_calculation_updates()
     except Exception as ex:
         logging.exception(ex)
 
@@ -258,7 +236,6 @@ def _update_transport_calculations() -> list[ProfitDetails]:
 
 
 def _update_crafting_calculations() -> list[ProfitDetails]:
-    global calculations
     recipes = albion_calculator.items.get_all_crafting_recipes()
     calculations = []
     calculations.extend(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
