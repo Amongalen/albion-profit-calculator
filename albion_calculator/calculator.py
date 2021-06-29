@@ -231,8 +231,12 @@ def update_calculations() -> None:
         calculations_update.profit_details.extend(_update_crafting_calculations())
         calculations_update.profit_details.extend(_update_upgrade_calculations())
     logging.info('all calculations loaded')
-    database.save_calculations_update(calculations_update)
-    database.clear_previous_calculation_updates()
+    try:
+        database.bulk_insert_calculations_update(calculations_update)
+        database.clear_previous_calculation_updates()
+        logging.info('all calculations saved')
+    except Exception as ex:
+        logging.exception(ex)
 
 
 def _update_upgrade_calculations() -> list[ProfitDetails]:
