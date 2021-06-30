@@ -38,9 +38,11 @@ app = create_app()
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = False
 db = SQLAlchemy(app)
 models.init_db()
-start_background_calculator_job()
+if os.environ.get("INIT_APP", True) != 'False':
+    start_background_calculator_job()
 
 
 @app.context_processor

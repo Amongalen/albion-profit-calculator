@@ -73,12 +73,12 @@ class ProfitDetails:
     destination_city: str
     production_city: str
     ingredients_details: list[IngredientDetails]
-    type_key: str = ''
 
 
 @dataclass
 class CalculationsUpdate:
     id: int = field(init=False)
+    type_key: str
     profit_details: list[ProfitDetails] = field(default_factory=list)
     update_time: datetime = datetime.now()
 
@@ -103,7 +103,6 @@ def init_db():
                                     Column('profit_percentage', Float),
                                     Column('destination_city', String(100)),
                                     Column('production_city', String(100)),
-                                    Column('type_key', String(100)),
                                     Column('calculations_updates_id',
                                            ForeignKey('calculations_updates.id', ondelete="CASCADE")),
                                     mysql_engine='InnoDB'
@@ -123,6 +122,7 @@ def init_db():
                                         mysql_engine='InnoDB')
     calculations_updates_table = db.Table('calculations_updates',
                                           Column('id', Integer, primary_key=True),
+                                          Column('type_key', String(100)),
                                           Column('update_time', DateTime),
                                           mysql_engine='InnoDB')
 

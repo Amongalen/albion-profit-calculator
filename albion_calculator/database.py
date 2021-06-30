@@ -28,10 +28,14 @@ def bulk_insert_calculations_update(calculations_update: CalculationsUpdate):
     logging.debug(f'{len(calculations_update.profit_details)} calculations saved to DB')
 
 
-def delete_previous_calculation_updates():
+def delete_previous_calculation_updates(type_key: str):
     from albion_calculator.webapp import db
-    latest_calculation_update = db.session.query(CalculationsUpdate.id).order_by(desc(CalculationsUpdate.id)).first()
-    db.session.query(CalculationsUpdate).filter(CalculationsUpdate.id != latest_calculation_update.id).delete()
+    latest_calculation_update = db.session.query(CalculationsUpdate.id) \
+        .filter(CalculationsUpdate.type_key == type_key) \
+        .order_by(desc(CalculationsUpdate.id)).first()
+    db.session.query(CalculationsUpdate) \
+        .filter(CalculationsUpdate.id != latest_calculation_update.id, CalculationsUpdate.type_key == type_key) \
+        .delete()
     db.session.commit()
     logging.debug('Old calculations removed')
 
