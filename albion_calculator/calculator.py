@@ -62,7 +62,7 @@ _MULTIPLIERS = {
 def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
                      category: str) -> tuple[list[ProfitDetails], datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
-    key = key if not limitation == 'PER_CITY' else key + cities.city_at_index(city_index)
+    key = key if not limitation == 'PER_CITY' else f'{key} + {cities.city_at_index(city_index).upper().replace(" ", "_")}'
     profit_details, update_time = database.find_calculations_for_key_and_category(key, category)
     return profit_details.items, update_time
 
@@ -260,7 +260,8 @@ def _calculate_profits(recipe_type: str, limitations: str, recipes: list[Recipe]
 
 def _calculate_profits_per_city(recipes: list[Recipe], use_focus: bool, type_key: str) -> \
         dict[str, list[ProfitDetails]]:
-    return {(type_key + city_name): _calculate_profits_for_recipes(recipes, multiplier, use_focus)
+    return {f'{type_key}_{city_name.upper().replace(" ", "_")}': _calculate_profits_for_recipes(recipes, multiplier,
+                                                                                                use_focus)
             for city_name, multiplier in zip(cities.cities_names(), _MULTIPLIERS['PER_CITY'])}
 
 

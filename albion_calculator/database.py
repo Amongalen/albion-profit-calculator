@@ -37,7 +37,7 @@ def delete_previous_calculation_updates(type_key: str):
         .filter(CalculationsUpdate.id != latest_calculation_update.id, CalculationsUpdate.type_key == type_key) \
         .delete()
     db.session.commit()
-    logging.debug('Old calculations removed')
+    logging.debug(f'Old calculations for key {type_key} removed')
 
 
 def find_calculations_for_key_and_category(key: str, category: str) -> \

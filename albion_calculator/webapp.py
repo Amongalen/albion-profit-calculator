@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from albion_calculator import calculator, shop_categories, config, models
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 def create_app():
