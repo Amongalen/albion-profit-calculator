@@ -189,6 +189,7 @@ def _correct_erroneous_prices(estimated_prices: dict) -> dict:
 def update_prices() -> None:
     global _items_prices, _estimated_real_prices
     items_ids = items.get_all_items_ids()
+    logging.info('Starting fetching prices')
     _items_prices = _load_all_prices(items_ids)
     logging.info('Prices fetched')
     estimated_prices = {item_id: _estimate_real_prices_for_item(item_id) for item_id in items_ids}

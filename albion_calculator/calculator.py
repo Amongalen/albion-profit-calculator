@@ -208,7 +208,7 @@ def update_calculations() -> None:
     if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
         _update_crafting_calculations()
         _update_upgrade_calculations()
-    logging.info('Everything calculated')
+    logging.info('Everything calculated and saved to DB')
 
 
 def _update_upgrade_calculations() -> None:
