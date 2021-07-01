@@ -43,14 +43,16 @@ def delete_previous_calculation_updates(type_key: str):
 def find_calculations_for_key_and_category(key: str, category: str) -> \
         Tuple[Pagination, datetime]:
     from albion_calculator.webapp import db
-    calculation_update = db.session.query(CalculationsUpdate).order_by(desc(CalculationsUpdate.update_time)).first()
+    calculation_update = db.session.query(CalculationsUpdate) \
+        .filter_by(type_key=key) \
+        .order_by(desc(CalculationsUpdate.update_time)).first()
     if category != 'all':
         profit_details = db.session.query(ProfitDetails) \
-            .filter_by(calculations_updates_id=calculation_update.id, type_key=key, product_subcategory_id=category) \
+            .filter_by(calculations_updates_id=calculation_update.id, product_subcategory_id=category) \
             .paginate(max_per_page=100)
     else:
         profit_details = db.session.query(ProfitDetails) \
-            .filter_by(calculations_updates_id=calculation_update.id, type_key=key) \
+            .filter_by(calculations_updates_id=calculation_update.id) \
             .paginate(max_per_page=100)
     return profit_details, calculation_update.update_time
 
