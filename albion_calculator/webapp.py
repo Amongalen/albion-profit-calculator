@@ -83,7 +83,7 @@ def results():
                                                             limitation=form_data.get('limitation', 'TRAVEL'),
                                                             city_index=int(form_data.get('city', '0')),
                                                             use_focus=form_data.get('focus', False),
-                                                            category=form_data.get('category', None))
+                                                            category=form_data.get('category', 'all'))
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
     return render_template('index.html', page=page, per_page=per_page,

@@ -25,7 +25,7 @@
                         <option value="NO_RISK">No risk</option>
                     </select>
                     <label for="category">Shop category</label>
-                    <select name="category" id="category">
+                    <select name="category" id="category" disabled>
                         <option value='all'>All</option>
                         {% for category_id, category_name in categories.items() %}
                         <option value={{category_id}}>{{category_name}}</option>
