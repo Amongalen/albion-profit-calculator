@@ -1,5 +1,6 @@
 # Albion Profit Calculator
-A website that calculates possible profits in Albion Online. 
+A web app that calculates possible profits in Albion Online in the background and makes them accessible via a website. 
+https://albion-profit-calculator.herokuapp.com/
 
 There are 7 main cities and each city has a separate marketplace. A profit can be made by transporting goods between cities - buying cheap in one city and selling for more in a different one. 
 Additionally, there is a lot of items that can be crafted. Each city specializes in crafting certain types of items - you will get some amount of ingredients back when crafting.
@@ -14,3 +15,4 @@ Prices for all the items are fetched from [The Albion Online Data Project API](h
 When all possible combinations are calculated, the results can be accessed via website.
 
 The project uses Flask for the web part and some NumPy for profit calculations.
+Currently the web app is hosted on a Heroku and runs on a Gunicorn WSGI server. 
