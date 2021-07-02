@@ -1,6 +1,6 @@
-from albion_calculator import config
-from albion_calculator.items_parser import load_items
-from albion_calculator.models import RecipeType, Recipe
+from albion_calculator_backend import config
+from albion_calculator_backend.items_parser import load_items
+from albion_calculator_backend.models import RecipeType, Recipe
 
 
 def get_all_items_ids() -> list[str]:

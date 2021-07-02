@@ -4,8 +4,8 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
-import albion_calculator.items_parser
-from albion_calculator import items, craftingmodifiers
+import albion_calculator_backend.items_parser
+from albion_calculator_backend import items, crafting_modifiers
 
 URL = 'https://www.albiononline2d.com/en/item/id/'
 
@@ -39,12 +39,12 @@ def _get_crafting_fame_for_items(*args: str) -> dict[str, float]:
 
 
 def _save_crafting_fame_to_file(content_dict: dict) -> None:
-    with open(albion_calculator.items_parser.CRAFTING_FAME_JSON_FILE, 'w+') as f:
+    with open(albion_calculator_backend.items_parser.CRAFTING_FAME_JSON_FILE, 'w+') as f:
         json.dump(content_dict, f)
 
 
 if __name__ == '__main__':
-    craftable_subcategories = craftingmodifiers.get_craftable_categories()
+    craftable_subcategories = crafting_modifiers.get_craftable_categories()
     items_ids = items.get_items_ids_for_category_or_subcategory(*craftable_subcategories)
     crafting_fame_dict = _get_crafting_fame_for_items(*items_ids, 'accessories')
     _save_crafting_fame_to_file(crafting_fame_dict)

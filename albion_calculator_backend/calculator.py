@@ -1,16 +1,21 @@
 import datetime
 import logging
 from math import nan
+from time import sleep
 from typing import Optional
 
 import numpy as np
+from apscheduler.schedulers.background import BackgroundScheduler
 from numpy import ndarray
+from sqlalchemy.orm import Query
 
-import albion_calculator.items
-from albion_calculator import items, cities, journals, market, craftingmodifiers, shop_categories, config, database
-from albion_calculator.market import get_prices_for_item, get_price_for_item_in_city
-from albion_calculator.models import RecipeType, Ingredient, Recipe, IngredientDetails, ProfitDetails, \
-    CalculationsUpdate
+import albion_calculator_backend.items
+import albion_calculator_web.database
+from albion_calculator_backend import items, cities, journals, market, crafting_modifiers, shop_categories, config
+from albion_calculator_backend.database import BackendSession
+from albion_calculator_backend.database_models import ProfitDetails, IngredientDetails, CalculationsUpdate
+from albion_calculator_backend.market import get_prices_for_item, get_price_for_item_in_city
+from albion_calculator_backend.models import RecipeType, Ingredient, Recipe
 
 _PROFIT_LIMIT = config.CONFIG['APP']['CALCULATOR']['PROFIT_PERCENTAGE_LIMIT']
 
@@ -60,11 +65,11 @@ _MULTIPLIERS = {
 
 
 def get_calculations(recipe_type: str, limitation: str, city_index: int, use_focus: bool,
-                     category: str) -> tuple[list[ProfitDetails], datetime]:
+                     category: str) -> tuple[Query, datetime]:
     key = _create_calculation_key(limitation, recipe_type, use_focus)
     key = key if not limitation == 'PER_CITY' else f'{key} + {cities.city_at_index(city_index).upper().replace(" ", "_")}'
-    profit_details, update_time = database.find_calculations_for_key_and_category(key, category)
-    return profit_details.items, update_time
+    profit_details, update_time = albion_calculator_web.database.find_calculations_for_key_and_category(key, category)
+    return profit_details, update_time
 
 
 def _calculate_profit_details_for_recipe(recipe: Recipe, multiplier: ndarray,
@@ -185,7 +190,7 @@ def _calculate_final_profit_matrix(ingredients_costs: list[dict[str, tuple]], mu
 
 def _calculate_ingredients_best_deals(multiplier: ndarray, recipe: Recipe,
                                       use_focus: bool) -> list[dict[str, tuple]]:
-    return_rates = craftingmodifiers.get_return_rates_vector(recipe.result_item_id, use_focus)
+    return_rates = crafting_modifiers.get_return_rates_vector(recipe.result_item_id, use_focus)
     ingredients_price_matrices = {
         ingredient.item_id: _calculate_single_ingredient_cost(ingredient, multiplier, recipe.recipe_type,
                                                               return_rates)
@@ -204,53 +209,54 @@ def _calculate_single_ingredient_cost(ingredient: Ingredient, multiplier: ndarra
 
 def update_calculations() -> None:
     market.update_prices()
-    _update_transport_calculations()
-    if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
-        _update_crafting_calculations()
-        _update_upgrade_calculations()
+    with BackendSession() as session:
+        _update_transport_calculations(session)
+        if not config.CONFIG['APP']['CALCULATOR'].get('TESTING', False):
+            _update_crafting_calculations(session)
+            _update_upgrade_calculations(session)
     logging.info('Everything calculated and saved to DB')
 
 
-def _update_upgrade_calculations() -> None:
-    recipes = albion_calculator.items.get_all_upgrade_recipes()
-    _save_calculations(_calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('UPGRADE', 'NO_TRAVEL', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('UPGRADE', 'TRAVEL', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('UPGRADE', 'NO_RISK', recipes, use_focus=False))
+def _update_upgrade_calculations(session: BackendSession) -> None:
+    recipes = albion_calculator_backend.items.get_all_upgrade_recipes()
+    _save_calculations(session, _calculate_profits('UPGRADE', 'PER_CITY', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('UPGRADE', 'NO_TRAVEL', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('UPGRADE', 'TRAVEL', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('UPGRADE', 'NO_RISK', recipes, use_focus=False))
 
 
-def _update_transport_calculations() -> None:
-    recipes = albion_calculator.items.get_all_transport_recipes()
-    _save_calculations(_calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
+def _update_transport_calculations(session: BackendSession) -> None:
+    recipes = albion_calculator_backend.items.get_all_transport_recipes()
+    _save_calculations(session, _calculate_profits('TRANSPORT', 'TRAVEL', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('TRANSPORT', 'NO_RISK', recipes, use_focus=False))
 
 
-def _save_calculations(calculations_updates: list[CalculationsUpdate]):
+def _update_crafting_calculations(session: BackendSession) -> None:
+    recipes = albion_calculator_backend.items.get_all_crafting_recipes()
+    _save_calculations(session, _calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=True))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=True))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=False))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=True))
+    _save_calculations(session, _calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=False))
+
+
+def _save_calculations(session: BackendSession, calculations_updates: list[CalculationsUpdate]):
     for calculation_update in calculations_updates:
-        database.bulk_insert_calculations_update(calculation_update)
-        database.delete_previous_calculation_updates(calculation_update.type_key)
-
-
-def _update_crafting_calculations() -> None:
-    recipes = albion_calculator.items.get_all_crafting_recipes()
-    _save_calculations(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=True))
-    _save_calculations(_calculate_profits('CRAFTING', 'PER_CITY', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=True))
-    _save_calculations(_calculate_profits('CRAFTING', 'NO_TRAVEL', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=True))
-    _save_calculations(_calculate_profits('CRAFTING', 'TRAVEL', recipes, use_focus=False))
-    _save_calculations(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=True))
-    _save_calculations(_calculate_profits('CRAFTING', 'NO_RISK', recipes, use_focus=False))
+        session.bulk_insert_calculations_update(calculation_update)
+        session.delete_previous_calculation_updates(calculation_update.type_key)
 
 
 def _calculate_profits(recipe_type: str, limitations: str, recipes: list[Recipe], use_focus: bool) -> \
         list[CalculationsUpdate]:
     type_key = _create_calculation_key(limitations, recipe_type, use_focus)
     if limitations == 'PER_CITY':
-        result = [CalculationsUpdate(key, profit_details=profit_details)
+        result = [CalculationsUpdate(type_key=key, profit_details=profit_details)
                   for key, profit_details in _calculate_profits_per_city(recipes, use_focus, type_key).items()]
     else:
-        result = [CalculationsUpdate(type_key,
+        result = [CalculationsUpdate(type_key=type_key,
                                      profit_details=_calculate_profits_for_recipes(recipes,
                                                                                    _MULTIPLIERS[limitations],
                                                                                    use_focus))]
@@ -275,3 +281,22 @@ def _calculate_profits_for_recipes(recipes: list[Recipe], multiplier: ndarray, u
 def _create_calculation_key(limitations: str, recipe_type: str, use_focus: bool) -> str:
     use_focus_str = 'WITH_FOCUS' if use_focus else 'NO_FOCUS'
     return f'{recipe_type}_{limitations}_{use_focus_str}'
+
+
+def start_background_calculator_job() -> None:
+    try:
+        scheduler = BackgroundScheduler(daemon=True)
+        hours = config.CONFIG['APP']['WEBAPP']['UPDATE_HOURS']
+        hours = hours if isinstance(hours, list) else [hours]
+        hours = [str(hour) for hour in hours]
+        scheduler.add_job(update_calculations)
+        scheduler.add_job(update_calculations, 'cron', hour=','.join(hours))
+        scheduler.start()
+        while True:
+            sleep(60)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+
+if __name__ == '__main__':
+    start_background_calculator_job()

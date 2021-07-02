@@ -1,12 +1,14 @@
 import logging
+import logging
 import os
 
 import jinja2
-from apscheduler.schedulers.background import BackgroundScheduler
-from flask import render_template, request, session, redirect, url_for, Flask
-from flask_sqlalchemy import SQLAlchemy
+import sqlalchemy_pagination
+from flask import render_template, request, session, redirect, url_for, Flask, _app_ctx_stack
+from sqlalchemy.orm import scoped_session
 
-from albion_calculator import calculator, shop_categories, config, models
+from albion_calculator_backend import calculator, shop_categories
+from albion_calculator_backend.database import SessionLocal
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
                     level=logging.DEBUG)
@@ -21,28 +23,12 @@ def create_app():
     except OSError:
         pass
 
+    app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
+    app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
     return app
 
 
-def start_background_calculator_job() -> None:
-    scheduler = BackgroundScheduler(daemon=True)
-    hours = config.CONFIG['APP']['WEBAPP']['UPDATE_HOURS']
-    hours = hours if isinstance(hours, list) else [hours]
-    hours = [str(hour) for hour in hours]
-    scheduler.add_job(calculator.update_calculations)
-    scheduler.add_job(calculator.update_calculations, 'cron', hour=','.join(hours))
-    scheduler.start()
-
-
 app = create_app()
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI")
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = False
-db = SQLAlchemy(app)
-models.init_db()
-if os.environ.get("INIT_APP", True) != 'False':
-    start_background_calculator_job()
 
 
 @app.context_processor
@@ -56,6 +42,11 @@ def inject_categories() -> dict:
 def inject_travel_multiplier() -> dict:
     return dict(one_tile_multiplier=calculator.ONE_TILE,
                 two_tiles_multiplier=calculator.TWO_TILES)
+
+
+@app.teardown_appcontext
+def remove_session(*args, **kwargs):
+    app.session.remove()
 
 
 @app.route('/details', methods=['GET', 'POST'])
@@ -79,13 +70,14 @@ def results():
 
     if not form_data:
         return redirect(url_for('index'))
-    calculations, update_time = calculator.get_calculations(recipe_type=form_data.get('recipe_type', 'CRAFTING'),
-                                                            limitation=form_data.get('limitation', 'TRAVEL'),
-                                                            city_index=int(form_data.get('city', '0')),
-                                                            use_focus=form_data.get('focus', False),
-                                                            category=form_data.get('category', 'all'))
+    calculations_query, update_time = calculator.get_calculations(recipe_type=form_data.get('recipe_type', 'CRAFTING'),
+                                                                  limitation=form_data.get('limitation', 'TRAVEL'),
+                                                                  city_index=int(form_data.get('city', '0')),
+                                                                  use_focus=form_data.get('focus', False),
+                                                                  category=form_data.get('category', 'all'))
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
+    calculations = sqlalchemy_pagination.paginate(calculations_query, page, per_page)
     return render_template('index.html', page=page, per_page=per_page,
                            calculations=calculations, update_time=update_time)
 

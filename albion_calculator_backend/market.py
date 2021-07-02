@@ -7,10 +7,10 @@ from typing import Generator, Any
 import numpy as np
 from numpy import ndarray
 
-from albion_calculator import items, config
-from albion_calculator.cities import cities_names
-from albion_calculator.price_api import get_prices
-from albion_calculator.price_cache import local_price_cache
+from albion_calculator_backend import items, config
+from albion_calculator_backend.cities import cities_names
+from albion_calculator_backend.price_api import get_prices
+from albion_calculator_backend.price_cache import local_price_cache
 
 _DOWNLOAD_CHUNK_SIZE = config.CONFIG['DATA_PROJECT']['DOWNLOAD_CHUNK_SIZE']
 

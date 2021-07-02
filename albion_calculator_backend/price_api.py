@@ -2,7 +2,7 @@ import logging
 
 import requests as requests
 
-from albion_calculator import config
+from albion_calculator_backend import config
 
 _API_ADDRESS = config.CONFIG['DATA_PROJECT']['API_ADDRESS'] + '/{type}/{items}.json'
 _REQUEST_PARAMS = config.get_api_params()

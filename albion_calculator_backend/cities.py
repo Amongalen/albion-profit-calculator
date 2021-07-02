@@ -1,5 +1,3 @@
-from typing import List
-
 _CITIES = ['Fort Sterling', 'Lymhurst', 'Bridgewatch', 'Martlock', 'Thetford', 'Caerleon']
 
 

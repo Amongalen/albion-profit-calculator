@@ -11,7 +11,7 @@
         <div style="flex: 6 0 60%">
             <div class="sticky" style="padding-bottom: 20px; padding-left: 20px; top: 0;">
                 <h1>Albion Profit Calculator</h1>
-                <form action="{{url_for('results', page=1, per_page=50)}}" method="post" name="criteria">
+                <form action="{{ url_for('results', page=1, per_page=50) }}" method="post" name="criteria">
                     <label for="recipe_type">Type</label>
                     <select name="recipe_type" id="recipe_type" onchange="handle_type_change(this.value)">
                         <option value="TRANSPORT" selected>Transport</option>
@@ -28,7 +28,7 @@
                     <select name="category" id="category" disabled>
                         <option value='all'>All</option>
                         {% for category_id, category_name in categories.items() %}
-                        <option value={{category_id}}>{{category_name}}</option>
+                            <option value={{ category_id }}>{{ category_name }}</option>
                         {% endfor %}
                     </select>
                     <label for="city">City</label>

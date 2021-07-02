@@ -4,7 +4,6 @@ from typing import Any, Union, Hashable
 import yaml
 
 
-
 def get_api_params() -> dict[str, any]:
     return {k: _to_str_if_list(v) for k, v in CONFIG['DATA_PROJECT']['PARAMS'].items()}
 

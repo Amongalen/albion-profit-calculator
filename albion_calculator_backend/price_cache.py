@@ -5,7 +5,6 @@ import pathlib
 from datetime import datetime, timedelta
 from typing import Optional
 
-
 _CACHE_LIFETIME = 6
 _CACHE_FILENAME = pathlib.Path(__file__).parent / 'cache/price.cache'
 

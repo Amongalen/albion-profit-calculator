@@ -4,8 +4,8 @@ import pathlib
 import numpy as np
 from numpy import ndarray
 
-from albion_calculator import items
-from albion_calculator.cities import cities_names
+from albion_calculator_backend import items
+from albion_calculator_backend.cities import cities_names
 
 CRAFTINGMODIFIERS_FILE = pathlib.Path(__file__).parent / 'resources/craftingmodifiers.json'
 

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% if calculations %}
+        <div style="padding-left: 20px;">
+            All prices collected using <a href="https://www.albion-online-data.com/">The Albion Online Data
+            Project</a><br/>
+            Last data update: {{ update_time|datetime_format }}
+        </div>
+        <div style="text-align: center">
+            <h4>Page:
+                {% if calculations.has_previous %}
+                    <a href="{{ url_for('results', page=1, per_page=per_page) }}">First</a>
+                    <a href="{{ url_for('results', page=page-1, per_page=per_page) }}">{{ page-1 }}</a>
+                {% endif %}
+                {{ page }}
+                {% if calculations.has_next %}
+                    <a href="{{ url_for('results', page=page+1, per_page=per_page)}}">{{ page+1}}</a>
+                    <a href="{{ url_for('results', page=calculations.pages, per_page=per_page) }}">Last</a>
+                {% endif %}
+            </h4>
+        </div>
+        <table class="two-colors" id="results_table" style="width:90%; margin-left: auto; margin-right: auto;">
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Tier</th>
+                <th scope="col">Subcategory</th>
+                <th scope="col">Profit</th>
+                <th scope="col">Profit %</th>
+                <th scope="col"></th>
+            </tr>
+            {% for record in calculations.items %}
+                <tr>
+                    <td><img src="{{ url_for('static', filename='icons/' + record.product_id + '.png') }}" alt="Icon"
+                             style="vertical-align: middle" loading="lazy" width="50"
+                             height="50"> {{ record['product_name'] }}
+                    </td>
+                    <td style="text-align:center">{{ record.product_tier }}</td>
+                    <td>{{ record.product_subcategory }}</td>
+                    <td class="num">{{ record.profit_with_journals }}</td>
+                    <td class="num">{{ "%.2f"|format(record.profit_percentage) }}</td>
+                    <td>
+                        <button id="details{{ loop.index }}">Details</button>
+                        <script type="text/javascript">
+                            document.getElementById("details{{loop.index}}").onclick = function () {
+                                $.ajax({
+                                    url: "/details",
+                                    type: "post",
+                                    contentType: 'application/json',
+                                    data: '{{record|tojson}}',
+                                    success: function (response) {
+                                        $("#place_for_details").html(response);
+                                    },
+                                    error: function (xhr, ajaxOptions, thrownError) {
+                                        alert(xhr.status);
+                                        alert(thrownError);
+                                    }
+                                });
+                            }
+                        </script>
+                    </td>
+                </tr>
+
+            {% endfor %}
+        </table>
+        <div style="text-align: center">
+            <h4>Page:
+                {% if calculations.has_previous %}
+                    <a href="{{ url_for('results', page=1, per_page=per_page) }}">First</a>
+                    <a href="{{ url_for('results', page=page-1, per_page=per_page) }}">{{ page-1 }}</a>
+                {% endif %}
+                {{ page }}
+                {% if calculations.has_next %}
+                    <a href="{{ url_for('results', page=page+1, per_page=per_page)}}">{{ page+1}}</a>
+                    <a href="{{ url_for('results', page=calculations.pages, per_page=per_page) }}">Last</a>
+                {% endif %}
+            </h4>
+        </div>
+
+    {% endif %}
+
+
+{% endblock %}

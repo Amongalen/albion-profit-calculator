@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from albion_calculator.items_parser import ITEMS_JSON_FILE
+from albion_calculator_backend.items_parser import ITEMS_JSON_FILE
 
 _CRAFTING_TYPES = ['WARRIOR', 'HUNTER', 'MAGE', 'TOOLMAKER']
 

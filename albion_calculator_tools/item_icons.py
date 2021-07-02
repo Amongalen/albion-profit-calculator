@@ -3,7 +3,7 @@ import shutil
 
 import requests
 
-from albion_calculator import items
+from albion_calculator_backend import items
 
 URL = 'https://render.albiononline.com/v1/item/{item_id}.png'
 ICON_FILENAME = 'resources/icons/{item_id}.png'
