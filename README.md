@@ -1,6 +1,9 @@
 # Albion Profit Calculator
 A web app that calculates possible profits in Albion Online in the background and makes them accessible via a website. 
-https://albion-profit-calculator.herokuapp.com/
+
+https://albion-profit-calculator.herokuapp.com/ 
+
+(Currently hosted on a free plan and it goes to sleep after 30 min of being inactive - first visit might take a moment to load)
 
 There are 7 main cities and each city has a separate marketplace. A profit can be made by transporting goods between cities - buying cheap in one city and selling for more in a different one. 
 Additionally, there is a lot of items that can be crafted. Each city specializes in crafting certain types of items - you will get some amount of ingredients back when crafting.
